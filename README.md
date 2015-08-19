@@ -2,6 +2,7 @@
 Powershell SQL Server Library 
 
 Features
+
 The library has the following features:
 
 Get the host harddisk information
@@ -17,4 +18,5 @@ Get the SQL Server database user privileges
 Get the SQL Server Agent jobs
 
 Installation
+
 Unzip the zip file in the standard Powershell Module Directory %systemroot%\System32\WindowsPowerShell\v1.0\Modules so the psd1, psm1, ps1 files should be located here %systemroot%\System32\WindowsPowerShell\v1.0\Modules\PSSQLLib\
