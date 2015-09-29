@@ -28,9 +28,9 @@ function Get-SQLConfiguration
     .PARAMETER instance
         This is the instance that needs to be connected
     .EXAMPLE
-        Check-SQLConfiguration "SQL01"
+        Get-SQLConfiguration "SQL01"
     .EXAMPLE
-        Check-SQLConfiguration "SQL01\INST01"
+        Get-SQLConfiguration "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -86,11 +86,11 @@ function Get-SQLInstanceSettings
     .PARAMETER instance
         This is the instance that needs to be connected
     .EXAMPLE
-        Check-SQLInstance "SQL01"
+        Get-SQLInstance "SQL01"
     .EXAMPLE
-        Check-SQLInstance "SQL01\INST01"
+        Get-SQLInstance "SQL01\INST01"
     .EXAMPLE
-        Check-SQLInstance -instance "SQL01\INST01"
+        Get-SQLInstance -instance "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -141,11 +141,11 @@ function Get-SQLDatabases
     .PARAMETER instance
         This is the instance that needs to be connected
     .EXAMPLE
-        Check-Check-SQLDatabases "SQL01"
+        Get-Get-SQLDatabases "SQL01"
     .EXAMPLE
-        Check-Check-SQLDatabases "SQL01\INST01"
+        Get-Get-SQLDatabases "SQL01\INST01"
     .EXAMPLE
-        Check-Check-SQLDatabases -instance "SQL01\INST01"
+        Get-Get-SQLDatabases -instance "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -199,11 +199,11 @@ function Get-SQLDatabaseFiles
     .PARAMETER dbfilter
         This is used to return only show details on certain databases
     .EXAMPLE
-        Check-Get-SQLDatabaseFiles "SQL01"
+        Get-Get-SQLDatabaseFiles "SQL01"
     .EXAMPLE
-        Check-Get-SQLDatabaseFiles "SQL01\INST01"
+        Get-Get-SQLDatabaseFiles "SQL01\INST01"
     .EXAMPLE
-        Check-Get-SQLDatabaseFiles -instance "SQL01\INST01"
+        Get-Get-SQLDatabaseFiles -instance "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -286,13 +286,13 @@ function Get-SQLDatabaseUsers
     .PARAMETER dbfilter
         This is used to return only show details on certain databases
     .EXAMPLE
-        Check-SQLDatabaseUsers "SQL01"
+        Get-SQLDatabaseUsers "SQL01"
     .EXAMPLE
-        Check-SQLDatabaseUsers "SQL01\INST01"
+        Get-SQLDatabaseUsers "SQL01\INST01"
     .EXAMPLE
-        Check-SQLDatabaseUsers -instance "SQL01\INST01"
+        Get-SQLDatabaseUsers -instance "SQL01\INST01"
     .EXAMPLE
-        Check-SQLDatabaseUsers -instance "SQL01\INST01" -dbfilter "tempdb,msdb"
+        Get-SQLDatabaseUsers -instance "SQL01\INST01" -dbfilter "tempdb,msdb"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -352,11 +352,11 @@ function Get-SQLDatabasePrivileges
     .PARAMETER instance
         This is the instance that needs to be connected
     .EXAMPLE
-        Check-SQLDatabasePrivileges "SQL01"
+        Get-SQLDatabasePrivileges "SQL01"
     .EXAMPLE
-        Check-SQLDatabasePrivileges "SQL01\INST01"
+        Get-SQLDatabasePrivileges "SQL01\INST01"
     .EXAMPLE
-        Check-SQLDatabasePrivileges -instance "SQL01\INST01"
+        Get-SQLDatabasePrivileges -instance "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -448,11 +448,11 @@ function Get-SQLServerPrivileges
     .PARAMETER  instance
         This is the instance that needs to be connected
     .EXAMPLE
-        Check-SQLServerPrivileges "SQL01"
+        Get-SQLServerPrivileges "SQL01"
     .EXAMPLE
-        Check-SQLServerPrivileges "SQL01\INST01"
+        Get-SQLServerPrivileges "SQL01\INST01"
     .EXAMPLE
-        Check-SQLServerPrivileges -instance "SQL01\INST01"
+        Get-SQLServerPrivileges -instance "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -533,11 +533,11 @@ function Get-SQLAgentJobs
     .PARAMETER instance
         This is the instance that needs to be connected
     .EXAMPLE
-        Check-SQLServerJobs "SQL01"
+        Get-SQLServerJobs "SQL01"
     .EXAMPLE
-        Check-SQLServerJobs "SQL01\INST01"
+        Get-SQLServerJobs "SQL01\INST01"
     .EXAMPLE
-        Check-SQLServerJobs -instance "SQL01\INST01"
+        Get-SQLServerJobs -instance "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -589,9 +589,9 @@ function Get-HostHarddisk
     .PARAMETER hst
         This is the host that needs to be connected
     .EXAMPLE
-        Check-HostHarddisk "SQL01"
+        Get-HostHarddisk "SQL01"
     .EXAMPLE
-        Check-HostHarddisk -hst "SQL01"
+        Get-HostHarddisk -hst "SQL01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -629,9 +629,9 @@ function Get-HostHardware
     .PARAMETER hst
         This is the host that needs to be connected
     .EXAMPLE
-        Check-HostHardware "SQL01"
+        Get-HostHardware "SQL01"
     .EXAMPLE
-        Check-HostHardware -hst "SQL01"
+        Get-HostHardware -hst "SQL01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -669,9 +669,9 @@ function Get-HostOperatingSystem
     .PARAMETER hst
         This is the host that needs to be connected
     .EXAMPLE
-        Check-HostOperatingSystems "SQL01"
+        Get-HostOperatingSystems "SQL01"
     .EXAMPLE
-        Check-HostOperatingSystems -hst "SQL01"
+        Get-HostOperatingSystems -hst "SQL01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -699,6 +699,35 @@ function Get-HostOperatingSystem
 
 Export-ModuleMember -Function Get-HostOperatingSystem
 
+function Get-HostSQLServerServices
+{
+    <# 
+    .SYNOPSIS
+        Get the SQL Server services
+    .DESCRIPTION
+        The function return all the services present on the server regarding SQL Server
+    .PARAMETER hst
+        This is the host that needs to be connected
+    .EXAMPLE
+        Get-HostSQLServerServices "SQL01"
+    .EXAMPLE
+        Get-HostOperatingSystems -hst "SQL01"
+    .INPUTS
+    .OUTPUTS
+        System.Array
+    .NOTES
+    .LINK
+    #>
+    param
+    (
+        [Parameter(Position=0, Mandatory=$true, ValueFromPipeline=$false)]
+		[ValidateNotNullOrEmpty()] $srv
+    )
+
+    return Get-WmiObject win32_Service -Computer $srv | where {$_.DisplayName -match "SQL Server"} | select SystemName, DisplayName, Name, State, Status, StartMode, StartName | Format-Table
+}
+
+Export-ModuleMember -Function Get-HostSQLServerServices
 
 function Load-Assembly
 {
