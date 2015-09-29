@@ -711,7 +711,7 @@ function Get-HostSQLServerServices
     .EXAMPLE
         Get-HostSQLServerServices "SQL01"
     .EXAMPLE
-        Get-HostOperatingSystems -hst "SQL01"
+        Get-HostSQLServerService -hst "SQL01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -721,10 +721,10 @@ function Get-HostSQLServerServices
     param
     (
         [Parameter(Position=0, Mandatory=$true, ValueFromPipeline=$false)]
-		[ValidateNotNullOrEmpty()] $srv
+		[ValidateNotNullOrEmpty()] $hst
     )
 
-    return Get-WmiObject win32_Service -Computer $srv | where {$_.DisplayName -match "SQL Server"} | select SystemName, DisplayName, Name, State, Status, StartMode, StartName | Format-Table
+    return Get-WmiObject win32_Service -Computer $hst | where {$_.DisplayName -match "SQL Server"} | select SystemName, DisplayName, Name, State, Status, StartMode, StartName | Format-Table
 }
 
 Export-ModuleMember -Function Get-HostSQLServerServices
