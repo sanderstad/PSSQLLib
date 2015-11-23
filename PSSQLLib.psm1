@@ -294,8 +294,8 @@ function Get-SQLDatabaseFiles
             foreach($file in $files)
             {
                 $result += $file | Select `
-					@{Name="Database Name"; Expression={$database.Name}}, Name, `
-					@{Name="File Type";Expression={"ROWS"}}, `
+					@{Name="DatabaseName"; Expression={$database.Name}}, Name, `
+					@{Name="FileType";Expression={"ROWS"}}, `
 					@{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
 					@{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
 					Growth, GrowthType, Size, UsedSpace
@@ -309,8 +309,8 @@ function Get-SQLDatabaseFiles
         foreach($file in $files)
         {
             $result += $file | Select `
-				@{Name="Database Name"; Expression={$database.Name}}, Name, `
-				@{Name="File Type";Expression={"LOG"}}, `
+				@{Name="DatabaseName"; Expression={$database.Name}}, Name, `
+				@{Name="FileType";Expression={"LOG"}}, `
 				@{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
 				@{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
 				Growth, GrowthType, Size, UsedSpace
@@ -488,10 +488,10 @@ function Get-SQLDatabasePrivileges
 
                 # Combine the results
                 $result += $database | Select `
-					@{N="Database Name";E={$database.Name}},`
-					@{N="Login Name";E={$user.Name}},`
-					@{N="Login Type"; E={$user.LoginType}},`
-					@{N="Database Roles";E={([string]::Join(",", $userRoles))}} | Sort-Object $database.Name,$user.Name
+					@{N="DatabaseName";E={$database.Name}},`
+					@{N="LoginName";E={$user.Name}},`
+					@{N="LoginType"; E={$user.LoginType}},`
+					@{N="DatabaseRoles";E={([string]::Join(",", $userRoles))}} | Sort-Object $database.Name,$user.Name
             }
 
             # Clear the array
@@ -691,9 +691,9 @@ function Get-HostHarddisk
     # Get the results
     $result = $drives | Select -property `
 		@{N="Disk";E={$_.DeviceID}},VolumeName, `
-		@{N="FreeSpace MB";E={"{0:N2}" -f ($_.Freespace/1Mb)}}, `
-		@{N="Size MB";E={"{0:N2}" -f ($_.Size/1Mb)}}, `
-		@{N="Percentage Used";E={"{0:N2}" -f (($_.Size - $_.FreeSpace) / $_.Size * 100)}} | Format-Table
+		@{N="FreeSpaceMB";E={"{0:N2}" -f ($_.Freespace/1Mb)}}, `
+		@{N="SizeMB";E={"{0:N2}" -f ($_.Size/1Mb)}}, `
+		@{N="PercentageUsed";E={"{0:N2}" -f (($_.Size - $_.FreeSpace) / $_.Size * 100)}} | Format-Table
 
     return $result
 }
@@ -735,7 +735,7 @@ function Get-HostHardware
 
     # Get the result
     $result = $computer | Select Description,NumberOfLogicalProcessors,NumberOfProcessors, `
-		@{N="TotalPhysicalMemory GB";E={"{0:N2}" -f ($_.TotalPhysicalMemory/1Gb)}}, `
+		@{N="TotalPhysicalMemoryGB";E={"{0:N2}" -f ($_.TotalPhysicalMemory/1Gb)}}, `
 		Model,Manufacturer,PartOfDomain,CurrentTimeZone,DaylightInEffect
 
     # Return the result
@@ -781,9 +781,9 @@ function Get-HostOperatingSystem
     $result = $os | Select `
 		OSArchitecture,OSLanguage,OSProductSuite,OSType,BuildNumbe,`
 		BuildType,Version,WindowsDirectory,PlusVersionNumber,`
-		@{N="FreePhysicalMemory MB";E={"{0:N2}" -f ($_.FreePhysicalMemory / 1Mb)}},`
-		@{N="FreeSpaceInPagingFiles MB";E={"{0:N2}" -f ($_.FreeSpaceInPagingFiles)}},`
-		@{N="FreeVirtualMemory MB";E={"{0:N2}" -f ($_.FreeVirtualMemory)}},`
+		@{N="FreePhysicalMemoryMB";E={"{0:N2}" -f ($_.FreePhysicalMemory / 1Mb)}},`
+		@{N="FreeSpaceInPagingFilesMB";E={"{0:N2}" -f ($_.FreeSpaceInPagingFiles)}},`
+		@{N="FreeVirtualMemoryMB";E={"{0:N2}" -f ($_.FreeVirtualMemory)}},`
 		PAEEnabled,ServicePackMajorVersion,ServicePackMinorVersion
 
     #return the result
