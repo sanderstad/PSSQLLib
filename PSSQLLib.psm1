@@ -15,6 +15,14 @@
 #  ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED
 #  TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
 #  PARTICULAR PURPOSE.
+#
+#  Changelog:
+#  v1.0: Initial version
+#  v1.1: Added several functions for hosts
+#  v1.2: Added functionality to get the host system information
+#        Cleaned up code, make it more readable
+#        Changed parameters to be consistent throughout functions
+#
 ################################################################################
 
 function Get-SQLConfiguration
@@ -31,6 +39,8 @@ function Get-SQLConfiguration
         Get-SQLConfiguration "SQL01"
     .EXAMPLE
         Get-SQLConfiguration "SQL01\INST01"
+	.EXAMPLE
+        Get-SQLInstance -inst "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -40,7 +50,9 @@ function Get-SQLConfiguration
 
     param
     (
-        [parameter(Mandatory=$true)] [string] $instance
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$inst = $null
     )
     
     # Check if assembly is loaded
@@ -53,7 +65,7 @@ function Get-SQLConfiguration
     if($server -eq $null)
     {
         try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $instance
+            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
         }
         catch [Exception]
         {
@@ -90,7 +102,7 @@ function Get-SQLInstanceSettings
     .EXAMPLE
         Get-SQLInstance "SQL01\INST01"
     .EXAMPLE
-        Get-SQLInstance -instance "SQL01\INST01"
+        Get-SQLInstance -inst "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -99,7 +111,9 @@ function Get-SQLInstanceSettings
     #>
     param
     (
-        [parameter(Mandatory=$true)] [string] $instance
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$inst = $null
     )
     
     # Check if assembly is loaded
@@ -112,7 +126,7 @@ function Get-SQLInstanceSettings
     if($server -eq $null)
     {
         try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $instance
+            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
         }
         catch [Exception]
         {
@@ -121,7 +135,18 @@ function Get-SQLInstanceSettings
     }
 
     # Get the instance settings
-    $result = $server | Select AuditLevel,BackupDirectory,BrowserServiceAccount,BrowserStartMode,BuildClrVersionString,BuildNumber,ClusterName,ClusterQuorumState,ClusterQuorumType,Collation,CollationID,ComparisonStyle,ComputerNamePhysicalNetBIOS,DefaultFile,DefaultLog,Edition,ErrorLogPath,FilestreamLevel,FilestreamShareName,HadrManagerStatus,InstallDataDirectory,InstallSharedDirectory,InstanceName,IsCaseSensitive,IsClustered,IsFullTextInstalled,IsHadrEnabled,IsSingleUser,IsXTPSupported,Language,LoginMode,MailProfile,MasterDBLogPath,MasterDBPath,MaxPrecision,NamedPipesEnabled,NetName,NumberOfLogFiles,OSVersion,PerfMonMode,PhysicalMemory,PhysicalMemoryUsageInKB,Platform,Processors,ProcessorUsage,Product,ProductLevel,ResourceLastUpdateDateTime,ResourceVersionString,RootDirectory,ServerType,ServiceAccount,ServiceInstanceId,ServiceName,ServiceStartMode,SqlCharSet,SqlCharSetName,SqlDomainGroup,SqlSortOrder,SqlSortOrderName,Status,TapeLoadWaitTime,TcpEnabled,VersionMajor,VersionMinor,VersionString,Name,Version,EngineEdition,ResourceVersion,BuildClrVersion,DefaultTextMode 
+    $result = $server | Select `
+		AuditLevel,BackupDirectory,BrowserServiceAccount,BrowserStartMode,BuildClrVersionString,`
+		BuildNumber,ClusterName,ClusterQuorumState,ClusterQuorumType,Collation,CollationID,`
+		ComparisonStyle,ComputerNamePhysicalNetBIOS,DefaultFile,DefaultLog,Edition,ErrorLogPath,`
+		FilestreamLevel,FilestreamShareName,HadrManagerStatus,InstallDataDirectory,InstallSharedDirectory,`
+		InstanceName,IsCaseSensitive,IsClustered,IsFullTextInstalled,IsHadrEnabled,IsSingleUser,IsXTPSupported,`
+		Language,LoginMode,MailProfile,MasterDBLogPath,MasterDBPath,MaxPrecision,NamedPipesEnabled,NetName,`
+		NumberOfLogFiles,OSVersion,PerfMonMode,PhysicalMemory,PhysicalMemoryUsageInKB,Platform,Processors,`
+		ProcessorUsage,Product,ProductLevel,ResourceLastUpdateDateTime,ResourceVersionString,RootDirectory,`
+		ServerType,ServiceAccount,ServiceInstanceId,ServiceName,ServiceStartMode,SqlCharSet,SqlCharSetName,`
+		SqlDomainGroup,SqlSortOrder,SqlSortOrderName,Status,TapeLoadWaitTime,TcpEnabled,VersionMajor,VersionMinor,`
+		VersionString,Name,Version,EngineEdition,ResourceVersion,BuildClrVersion,DefaultTextMode 
 
     # Return the result
     return $result
@@ -145,7 +170,7 @@ function Get-SQLDatabases
     .EXAMPLE
         Get-Get-SQLDatabases "SQL01\INST01"
     .EXAMPLE
-        Get-Get-SQLDatabases -instance "SQL01\INST01"
+        Get-Get-SQLDatabases -inst "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -154,7 +179,9 @@ function Get-SQLDatabases
     #>
     param
     (
-        [parameter(Mandatory=$true)] [string] $instance
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$inst = $null
     )
 
     # Check if assembly is loaded
@@ -167,7 +194,7 @@ function Get-SQLDatabases
     if($server -eq $null)
     {
         try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $instance
+            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
         }
         catch [Exception]
         {
@@ -179,7 +206,17 @@ function Get-SQLDatabases
     $databases = $server.Databases
 
     # Get the properties of each database
-    $result = $databases | Select Name,ActiveConnections,AnsiNullDefault,AnsiNullsEnabled,AnsiPaddingEnabled,AnsiWarningsEnabled,ArithmeticAbortEnabled,AutoClose,AutoCreateIncrementalStatisticsEnabled,AutoCreateStatisticsEnabled,AutoShrink,AutoUpdateStatisticsAsync,AutoUpdateStatisticsEnabled,AvailabilityGroupName,BrokerEnabled,CaseSensitive,CloseCursorsOnCommitEnabled,Collation,CompatibilityLevel,ConcatenateNullYieldsNull,ContainmentType,CreateDate,DataSpaceUsage,DatabaseOwnershipChaining,DatabaseSnapshotBaseName,DboLogin,DefaultFileGroup,DefaultSchema,DelayedDurability,EncryptionEnabled,HasDatabaseEncryptionKey,HasFileInCloud,HasFullBackup,ID,IndexSpaceUsage,IsDbSecurityAdmin,IsFullTextEnabled,IsManagementDataWarehouse,IsMirroringEnabled,IsSystemObject,IsUpdateable,LastBackupDate,LastDifferentialBackupDate,LastLogBackupDate,LogReuseWaitStatus,NestedTriggersEnabled,Owner,PageVerify,PolicyHealthState,PrimaryFilePath,ReadOnly,RecoveryModel,RecursiveTriggersEnabled,ReplicationOptions,Size,SnapshotIsolationState,SpaceAvailable,Status,TargetRecoveryTime,Trustworthy,UserAccess,UserName,Version | Format-Table
+    $result = $databases | Select `
+		ID,Name,AutoClose,AutoCreateIncrementalStatisticsEnabled,`
+		AutoCreateStatisticsEnabled,AutoShrink,AutoUpdateStatisticsAsync,AutoUpdateStatisticsEnabled,`
+		AvailabilityGroupName,CloseCursorsOnCommitEnabled,Collation,`
+		CompatibilityLevel,CreateDate,DataSpaceUsage,`
+		DelayedDurability,EncryptionEnabled,HasDatabaseEncryptionKey,HasFileInCloud,HasFullBackup,`
+		IndexSpaceUsage,IsDbSecurityAdmin,IsFullTextEnabled,IsManagementDataWarehouse,IsMirroringEnabled,`
+		LastBackupDate,LastDifferentialBackupDate,LastLogBackupDate,`
+		Owner,PageVerify,PolicyHealthState,PrimaryFilePath,ReadOnly,`
+		RecoveryModel,RecursiveTriggersEnabled,Size,SnapshotIsolationState,SpaceAvailable,`
+		Status,TargetRecoveryTime,Trustworthy,UserAccess,UserName,Version | Format-Table
 
     # Return the result
     return $result
@@ -203,7 +240,7 @@ function Get-SQLDatabaseFiles
     .EXAMPLE
         Get-Get-SQLDatabaseFiles "SQL01\INST01"
     .EXAMPLE
-        Get-Get-SQLDatabaseFiles -instance "SQL01\INST01"
+        Get-Get-SQLDatabaseFiles -inst "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -212,7 +249,9 @@ function Get-SQLDatabaseFiles
     #>
     param
     (
-        [parameter(Mandatory=$true)] [string] $instance
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$inst = $null
     )
 
     # Check if assembly is loaded
@@ -227,7 +266,7 @@ function Get-SQLDatabaseFiles
     if($server -eq $null)
     {
         try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $instance
+            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
         }
         catch [Exception]
         {
@@ -254,7 +293,12 @@ function Get-SQLDatabaseFiles
             # Loop through all the data files
             foreach($file in $files)
             {
-                $result += $file | Select @{Name="Database Name"; Expression={$database.Name}}, Name, @{Name="File Type";Expression={"ROWS"}}, @{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, @{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, Growth, GrowthType, Size, UsedSpace
+                $result += $file | Select `
+					@{Name="Database Name"; Expression={$database.Name}}, Name, `
+					@{Name="File Type";Expression={"ROWS"}}, `
+					@{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
+					@{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
+					Growth, GrowthType, Size, UsedSpace
             }
         }
 
@@ -264,7 +308,12 @@ function Get-SQLDatabaseFiles
         # Loop through all the log files
         foreach($file in $files)
         {
-            $result += $file | Select @{Name="Database Name"; Expression={$database.Name}}, Name, @{Name="File Type";Expression={"LOG"}}, @{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, @{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, Growth, GrowthType, Size, UsedSpace
+            $result += $file | Select `
+				@{Name="Database Name"; Expression={$database.Name}}, Name, `
+				@{Name="File Type";Expression={"LOG"}}, `
+				@{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
+				@{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
+				Growth, GrowthType, Size, UsedSpace
         }
 
     }
@@ -290,9 +339,9 @@ function Get-SQLDatabaseUsers
     .EXAMPLE
         Get-SQLDatabaseUsers "SQL01\INST01"
     .EXAMPLE
-        Get-SQLDatabaseUsers -instance "SQL01\INST01"
+        Get-SQLDatabaseUsers -inst "SQL01\INST01"
     .EXAMPLE
-        Get-SQLDatabaseUsers -instance "SQL01\INST01" -dbfilter "tempdb,msdb"
+        Get-SQLDatabaseUsers -inst "SQL01\INST01" -dbfilter "tempdb,msdb"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -301,8 +350,12 @@ function Get-SQLDatabaseUsers
     #>
     param
     (
-        [parameter(Mandatory=$true)] [string] $instance
-        , [parameter(Mandatory=$false)] [string[]] $dbfilter = $null
+		[Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$inst = $null
+		, [Parameter(Mandatory = $false, Position=2)]
+        [ValidateNotNullOrEmpty()]
+        [string]$dbfilter = $null
     )
     
     # Check if assembly is loaded
@@ -312,7 +365,7 @@ function Get-SQLDatabaseUsers
     if($server -eq $null)
     {
         try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $instance
+            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
         }
         catch [Exception]
         {
@@ -333,7 +386,11 @@ function Get-SQLDatabaseUsers
         $databaseUsers = $database.Users 
 
         # Get the result
-        $result += $databaseUsers | Select Parent,Name,AsymmetricKey,AuthenticationType,Certificate,CreateDate,DateLastModified,DefaultLanguageLcid,DefaultLanguageName,DefaultSchema,HasDBAccess,ID,IsSystemObject,Login,LoginType,PolicyHealthState,Sid,UserType 
+        $result += $databaseUsers | Select `
+			Parent,Name,AsymmetricKey,AuthenticationType,Certificate,`
+			CreateDate,DateLastModified,DefaultLanguageLcid,DefaultLanguageName,`
+			DefaultSchema,HasDBAccess,ID,IsSystemObject,Login,LoginType,`
+			PolicyHealthState,Sid,UserType 
     }
     
     # Return the results
@@ -356,7 +413,7 @@ function Get-SQLDatabasePrivileges
     .EXAMPLE
         Get-SQLDatabasePrivileges "SQL01\INST01"
     .EXAMPLE
-        Get-SQLDatabasePrivileges -instance "SQL01\INST01"
+        Get-SQLDatabasePrivileges -inst "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -366,7 +423,9 @@ function Get-SQLDatabasePrivileges
     
     param
     (
-        [parameter(Mandatory=$true)] [string] $instance
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$inst = $null
     )
     
     # Check if assembly is loaded
@@ -376,7 +435,7 @@ function Get-SQLDatabasePrivileges
     if($server -eq $null)
     {
         try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $instance
+            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
         }
         catch [Exception]
         {
@@ -406,7 +465,12 @@ function Get-SQLDatabasePrivileges
         foreach($user in $users)
         {
             # Check if user is not a system user
-            if(($user.Name -ne "dbo") -and ($user.Name -notlike "##*") -and ($user.Name -ne "INFORMATION_SCHEMA") -and ($user.Name -ne "sys") -and ($user.Name -ne "guest"))
+            if(
+				($user.Name -ne "dbo") `
+				-and ($user.Name -notlike "##*") `
+				-and ($user.Name -ne "INFORMATION_SCHEMA") `
+				-and ($user.Name -ne "sys") `
+				-and ($user.Name -ne "guest"))
             {
 
                 # Loop through the roles
@@ -423,7 +487,11 @@ function Get-SQLDatabasePrivileges
                 }
 
                 # Combine the results
-                $result += $database | Select @{N="Database Name";E={$database.Name}},@{N="Login Name";E={$user.Name}},@{N="Login Type"; E={$user.LoginType}},@{N="Database Roles";E={([string]::Join(",", $userRoles))}} | Sort-Object $database.Name,$user.Name
+                $result += $database | Select `
+					@{N="Database Name";E={$database.Name}},`
+					@{N="Login Name";E={$user.Name}},`
+					@{N="Login Type"; E={$user.LoginType}},`
+					@{N="Database Roles";E={([string]::Join(",", $userRoles))}} | Sort-Object $database.Name,$user.Name
             }
 
             # Clear the array
@@ -452,7 +520,7 @@ function Get-SQLServerPrivileges
     .EXAMPLE
         Get-SQLServerPrivileges "SQL01\INST01"
     .EXAMPLE
-        Get-SQLServerPrivileges -instance "SQL01\INST01"
+        Get-SQLServerPrivileges -inst "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -462,7 +530,9 @@ function Get-SQLServerPrivileges
     
     param
     (
-        [parameter(Mandatory=$true)] [string] $instance
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$inst = $null
     )
     
     # Check if assembly is loaded
@@ -472,7 +542,7 @@ function Get-SQLServerPrivileges
     if($server -eq $null)
     {
         try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $instance
+            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
         }
         catch [Exception]
         {
@@ -501,12 +571,15 @@ function Get-SQLServerPrivileges
             # Make the result
             if($serverRoles.Count -gt 1)
             {
-                $result += $login | Select Name,LoginType,CreateDate,DateLastModified,IsDisabled,@{N="ServerRoles";E=([string]::Join(",", $serverRoles))} | Sort-Object Name 
-                #$result += $login | Select Name,LoginType,CreateDate,DateLastModified,IsDisabled,@{N="ServerRoles";E=($serverRoles.ToString())} | Sort-Object Name
+                $result += $login | Select `
+					Name,LoginType,CreateDate,DateLastModified,IsDisabled,`
+					@{N="ServerRoles";E=([string]::Join(",", $serverRoles))} | Sort-Object Name 
             }
             else
             {
-                $result += $login | Select Name,LoginType,CreateDate,DateLastModified,IsDisabled,@{N="ServerRoles";E={$serverRoles}} | Sort-Object Name 
+                $result += $login | Select `
+					Name,LoginType,CreateDate,DateLastModified,IsDisabled,`
+					@{N="ServerRoles";E={$serverRoles}} | Sort-Object Name 
             }
 
             # Clear the array
@@ -537,7 +610,7 @@ function Get-SQLAgentJobs
     .EXAMPLE
         Get-SQLServerJobs "SQL01\INST01"
     .EXAMPLE
-        Get-SQLServerJobs -instance "SQL01\INST01"
+        Get-SQLServerJobs -inst "SQL01\INST01"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -546,7 +619,9 @@ function Get-SQLAgentJobs
     #>
     param
     (
-        [parameter(Mandatory=$true)] [string] $instance
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$inst = $null
     )
 
     # Check if assembly is loaded
@@ -556,7 +631,7 @@ function Get-SQLAgentJobs
     if($server -eq $null)
     {
         try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $instance
+            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
         }
         catch [Exception]
         {
@@ -571,7 +646,9 @@ function Get-SQLAgentJobs
     $result = @()
 
     # Get the results
-    $result = $jobs | Select Name,JobType,IsEnabled,DateCreated,DateLastModified,LastRunDate,LastRunOutcome,NextRunDate,OwnerLoginName,Category | Sort-Object Name | Format-Table
+    $result = $jobs | Select `
+		Name,JobType,IsEnabled,DateCreated,DateLastModified,LastRunDate,`
+		LastRunOutcome,NextRunDate,OwnerLoginName,Category | Sort-Object Name | Format-Table
 
     # Return the result
     return $result
@@ -600,7 +677,9 @@ function Get-HostHarddisk
     #>
     param
     (
-        [parameter(Mandatory=$true)] [string] $hst
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$hst = $null
     )
 
     # Get the data
@@ -610,7 +689,11 @@ function Get-HostHarddisk
     $result = @()
 
     # Get the results
-    $result = $drives | Select -property @{N="Disk";E={$_.DeviceID}},VolumeName,@{N="FreeSpace MB";E={"{0:N2}" -f ($_.Freespace/1Mb)}},@{N="Size MB";E={"{0:N2}" -f ($_.Size/1Mb)}},@{N="Percentage Used";E={"{0:N2}" -f (($_.Size - $_.FreeSpace) / $_.Size * 100)}} | Format-Table
+    $result = $drives | Select -property `
+		@{N="Disk";E={$_.DeviceID}},VolumeName, `
+		@{N="FreeSpace MB";E={"{0:N2}" -f ($_.Freespace/1Mb)}}, `
+		@{N="Size MB";E={"{0:N2}" -f ($_.Size/1Mb)}}, `
+		@{N="Percentage Used";E={"{0:N2}" -f (($_.Size - $_.FreeSpace) / $_.Size * 100)}} | Format-Table
 
     return $result
 }
@@ -640,7 +723,9 @@ function Get-HostHardware
     #>
     param
     (
-        [parameter(Mandatory=$true)] [string] $hst
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$hst = $null
     )
 
     # Get the data
@@ -649,14 +734,15 @@ function Get-HostHardware
     $result = @()
 
     # Get the result
-    $result = $computer | Select Description,NumberOfLogicalProcessors,NumberOfProcessors,@{N="TotalPhysicalMemory GB";E={"{0:N2}" -f ($_.TotalPhysicalMemory/1Gb)}},Model,Manufacturer,PartOfDomain,CurrentTimeZone,DaylightInEffect
+    $result = $computer | Select Description,NumberOfLogicalProcessors,NumberOfProcessors, `
+		@{N="TotalPhysicalMemory GB";E={"{0:N2}" -f ($_.TotalPhysicalMemory/1Gb)}}, `
+		Model,Manufacturer,PartOfDomain,CurrentTimeZone,DaylightInEffect
 
     # Return the result
     return $result
 }
 
 Export-ModuleMember -Function Get-HostHardware
-
 
 function Get-HostOperatingSystem
 {
@@ -681,7 +767,9 @@ function Get-HostOperatingSystem
     
     param
     (
-        [parameter(Mandatory=$true)] [string] $hst
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$hst = $null
     )
 
     # Get the data
@@ -690,7 +778,13 @@ function Get-HostOperatingSystem
     $result = @()
 
     # Get the results
-    $result = $os | Select OSArchitecture,OSLanguage,OSProductSuite,OSType,BuildNumbe,BuildType,Version,WindowsDirectory,PlusVersionNumber,@{N="FreePhysicalMemory MB";E={"{0:N2}" -f ($_.FreePhysicalMemory / 1Mb)}},@{N="FreeSpaceInPagingFiles MB";E={"{0:N2}" -f ($_.FreeSpaceInPagingFiles)}},@{N="FreeVirtualMemory MB";E={"{0:N2}" -f ($_.FreeVirtualMemory)}},PAEEnabled,ServicePackMajorVersion,ServicePackMinorVersion
+    $result = $os | Select `
+		OSArchitecture,OSLanguage,OSProductSuite,OSType,BuildNumbe,`
+		BuildType,Version,WindowsDirectory,PlusVersionNumber,`
+		@{N="FreePhysicalMemory MB";E={"{0:N2}" -f ($_.FreePhysicalMemory / 1Mb)}},`
+		@{N="FreeSpaceInPagingFiles MB";E={"{0:N2}" -f ($_.FreeSpaceInPagingFiles)}},`
+		@{N="FreeVirtualMemory MB";E={"{0:N2}" -f ($_.FreeVirtualMemory)}},`
+		PAEEnabled,ServicePackMajorVersion,ServicePackMinorVersion
 
     #return the result
     return $result
@@ -720,14 +814,55 @@ function Get-HostSQLServerServices
     #>
     param
     (
-        [Parameter(Position=0, Mandatory=$true, ValueFromPipeline=$false)]
-		[ValidateNotNullOrEmpty()] $hst
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$hst = $null
     )
 
-    return Get-WmiObject win32_Service -Computer $hst | where {$_.DisplayName -match "SQL Server"} | select SystemName, DisplayName, Name, State, Status, StartMode, StartName | Format-Table
+    return Get-WmiObject win32_Service -Computer $hst | where {$_.DisplayName -match "SQL Server"} | `
+		select SystemName, DisplayName, Name, State, Status, StartMode, StartName | Format-Table
 }
 
 Export-ModuleMember -Function Get-HostSQLServerServices
+
+function Get-HostSystemInformation()
+{
+	<# 
+    .SYNOPSIS
+        Get the system information of the host
+    .DESCRIPTION
+        Select information from the system like the domain, manufacturer, model etc.
+    .PARAMETER hst
+        This is the host that needs to be connected
+    .EXAMPLE
+        Get-HostSystemInformation "SQL01"
+    .EXAMPLE
+        Get-HostSystemInformation -hst "SQL01"
+    .INPUTS
+    .OUTPUTS
+        System.Array
+    .NOTES
+    .LINK
+    #>
+    param(
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$hst = $null
+    )
+
+    $data = Get-WmiObject -class "Win32_ComputerSystem" -Namespace "root\CIMV2" -ComputerName $hst
+
+    $result = $data | Select-Object `
+        Name,Domain,Manufacturer,Model, `
+        NumberOfLogicalProcessors,NumberOfProcessors,LastLoadInfo, `
+        @{Name='TotalPhysicalMemoryMB';Expression={[math]::round(($_.TotalPhysicalMemory / 1024 / 1024))}}
+
+
+    return $result
+
+}
+
+Export-ModuleMember -Function Get-HostSystemInformation
 
 function Load-Assembly
 {
