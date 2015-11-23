@@ -77,7 +77,7 @@ function Get-SQLConfiguration
     $configuration = $server.Configuration
 
     # Get all the properties
-    $result = $configuration.Properties | Format-Table -AutoSize
+    $result = $configuration.Properties 
 
     # Return the result
     return $result
@@ -216,7 +216,7 @@ function Get-SQLDatabases
 		LastBackupDate,LastDifferentialBackupDate,LastLogBackupDate,`
 		Owner,PageVerify,PolicyHealthState,PrimaryFilePath,ReadOnly,`
 		RecoveryModel,RecursiveTriggersEnabled,Size,SnapshotIsolationState,SpaceAvailable,`
-		Status,TargetRecoveryTime,Trustworthy,UserAccess,UserName,Version | Format-Table
+		Status,TargetRecoveryTime,Trustworthy,UserAccess,UserName,Version 
 
     # Return the result
     return $result
@@ -318,7 +318,7 @@ function Get-SQLDatabaseFiles
 
     }
 
-    return $result | Format-Table -AutoSize
+    return $result
 }
 
 Export-ModuleMember -Function Get-SQLDatabaseFiles
@@ -394,7 +394,7 @@ function Get-SQLDatabaseUsers
     }
     
     # Return the results
-    return $result | Format-Table
+    return $result 
 }
 
 Export-ModuleMember -Function Get-SQLDatabaseUsers
@@ -587,7 +587,7 @@ function Get-SQLServerPrivileges
         }
     }
 
-    return ($result | Format-Table)
+    return $result
 
 }
 
@@ -648,7 +648,7 @@ function Get-SQLAgentJobs
     # Get the results
     $result = $jobs | Select `
 		Name,JobType,IsEnabled,DateCreated,DateLastModified,LastRunDate,`
-		LastRunOutcome,NextRunDate,OwnerLoginName,Category | Sort-Object Name | Format-Table
+		LastRunOutcome,NextRunDate,OwnerLoginName,Category | Sort-Object Name 
 
     # Return the result
     return $result
@@ -693,7 +693,7 @@ function Get-HostHarddisk
 		@{N="Disk";E={$_.DeviceID}},VolumeName, `
 		@{N="FreeSpaceMB";E={"{0:N2}" -f ($_.Freespace/1Mb)}}, `
 		@{N="SizeMB";E={"{0:N2}" -f ($_.Size/1Mb)}}, `
-		@{N="PercentageUsed";E={"{0:N2}" -f (($_.Size - $_.FreeSpace) / $_.Size * 100)}} | Format-Table
+		@{N="PercentageUsed";E={"{0:N2}" -f (($_.Size - $_.FreeSpace) / $_.Size * 100)}}
 
     return $result
 }
