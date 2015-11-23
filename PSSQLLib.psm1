@@ -820,7 +820,7 @@ function Get-HostSQLServerServices
     )
 
     return Get-WmiObject win32_Service -Computer $hst | where {$_.DisplayName -match "SQL Server"} | `
-		select SystemName, DisplayName, Name, State, Status, StartMode, StartName | Format-Table
+		select SystemName, DisplayName, Name, State, Status, StartMode, StartName 
 }
 
 Export-ModuleMember -Function Get-HostSQLServerServices
