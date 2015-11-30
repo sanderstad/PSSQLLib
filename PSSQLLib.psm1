@@ -489,9 +489,9 @@ function Get-SQLDatabasePrivileges
                 # Combine the results
                 $result += $database | Select `
 					@{N="DatabaseName";E={$database.Name}},`
-					@{N="LoginName";E={$user.Name}},`
-					@{N="LoginType"; E={$user.LoginType}},`
-					@{N="DatabaseRoles";E={([string]::Join(",", $userRoles))}} | Sort-Object $database.Name,$user.Name
+					@{N="UserName";E={$user.Name}},`
+					@{N="UserType"; E={$user.LoginType}},`
+					@{N="DatabaseRoles";E={([string]::Join(",", $userRoles))}}
             }
 
             # Clear the array
@@ -850,9 +850,11 @@ function Get-HostSystemInformation()
         [string]$hst = $null
     )
 
+    $result = @()
+
     $data = Get-WmiObject -class "Win32_ComputerSystem" -Namespace "root\CIMV2" -ComputerName $hst
 
-    $result = $data | Select-Object `
+    $result = $data | Select `
         Name,Domain,Manufacturer,Model, `
         NumberOfLogicalProcessors,NumberOfProcessors,LastLoadInfo, `
         @{Name='TotalPhysicalMemoryMB';Expression={[math]::round(($_.TotalPhysicalMemory / 1024 / 1024))}}
