@@ -22,6 +22,7 @@
 #  v1.2: Added functionality to get the host system information
 #        Cleaned up code, make it more readable
 #        Changed parameters to be consistent throughout functions
+#  v1.3: Added extra error catching
 #
 ################################################################################
 
@@ -280,41 +281,47 @@ function Get-SQLDatabaseFiles
     # Loop through all the databases
     foreach($database in $databases)
     {
-        
-        # Get the filegroups for the database
-        $filegroups = $database.FileGroups
+        try{
+            # Get the filegroups for the database
+            $filegroups = $database.FileGroups
 
-        # Loop through all the filegroups
-        foreach($filegroup in $filegroups)
-        {
+
+
+            # Loop through all the filegroups
+            foreach($filegroup in $filegroups)
+            {
+                # Get all the data files from the filegroup
+                $files = $filegroup.Files
+
+                # Loop through all the data files
+                foreach($file in $files)
+                {
+                    $result += $file | Select `
+					    @{Name="DatabaseName"; Expression={$database.Name}}, Name, `
+					    @{Name="FileType";Expression={"ROWS"}}, `
+					    @{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
+					    @{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
+					    Growth, GrowthType, Size, UsedSpace
+                }
+            }
+
             # Get all the data files from the filegroup
-            $files = $filegroup.Files
+            $files = $database.LogFiles
 
-            # Loop through all the data files
+            # Loop through all the log files
             foreach($file in $files)
             {
                 $result += $file | Select `
-					@{Name="DatabaseName"; Expression={$database.Name}}, Name, `
-					@{Name="FileType";Expression={"ROWS"}}, `
-					@{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
-					@{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
-					Growth, GrowthType, Size, UsedSpace
+				    @{Name="DatabaseName"; Expression={$database.Name}}, Name, `
+				    @{Name="FileType";Expression={"LOG"}}, `
+				    @{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
+				    @{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
+				    Growth, GrowthType, Size, UsedSpace
             }
-        }
-
-        # Get all the data files from the filegroup
-        $files = $database.LogFiles
-
-        # Loop through all the log files
-        foreach($file in $files)
-        {
-            $result += $file | Select `
-				@{Name="DatabaseName"; Expression={$database.Name}}, Name, `
-				@{Name="FileType";Expression={"LOG"}}, `
-				@{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
-				@{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
-				Growth, GrowthType, Size, UsedSpace
-        }
+        } 
+        catch{
+            
+        } 
 
     }
 
