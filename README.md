@@ -16,7 +16,20 @@ The library has the following features:
 * Get the SQL Server database users
 * Get the SQL Server database user privileges
 * Get the SQL Server Agent jobs
+* Get the SQL Server disk latencies
 
 ## Installation
+Make a directory (if not already present) name "PSSQLLib" in one of the following standard Powershell Module directories:
+* $Home\Documents\WindowsPowerShell\Modules (%UserProfile%\Documents\WindowsPowerShell\Modules)
+* $Env:ProgramFiles\ WindowsPowerShell\Modules (%ProgramFiles%\ WindowsPowerShell\Modules)
+* $Systemroot\System32\ WindowsPowerShell\v1.0\Modules (%systemroot%\System32\ WindowsPowerShell\v1.0\Modules)
 
-Unzip the zip file in the standard Powershell Module Directory %systemroot%\System32\WindowsPowerShell\v1.0\Modules so the psd1, psm1, ps1 files should be located here %systemroot%\System32\WindowsPowerShell\v1.0\Modules\PSSQLLib\
+Place both the psd1, psm1, ps1 files in the module directory created earlier
+
+Execute the following command in a PowerShell command screen:
+  Import-Module PSSQLLib
+
+To check if the module is imported correctly execute the following command:
+  Get-Command -Module PSSQLLib
+
+You should be able to see a list of functions
