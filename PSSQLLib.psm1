@@ -23,6 +23,7 @@
 #        Cleaned up code, make it more readable
 #        Changed parameters to be consistent throughout functions
 #  v1.3: Added extra error catching
+#  v1.3.1: Added function for retrieving disk latencies
 #
 ################################################################################
 
@@ -662,6 +663,76 @@ function Get-SQLAgentJobs
 }
 
 Export-ModuleMember -Function Get-SQLAgentJobs
+
+function Get-SQLDiskLatencies
+{
+    <# 
+    .SYNOPSIS
+        Get the latencies SQL Server registered on disk
+    .DESCRIPTION
+        The script will execute a query against the instance and retrieve
+        the read and write latencies which SQL Server collected.
+    .PARAMETER instance
+        This is the instance that needs to be connected
+    .EXAMPLE
+        Get-SQLDiskLatencies "SQL01"
+    .EXAMPLE
+        Get-SQLDiskLatencies "SQL01\INST01"
+	.EXAMPLE
+        Get-SQLDiskLatencies -inst "SQL01\INST01"
+    .INPUTS
+    .OUTPUTS
+        System.Array
+    .NOTES
+    .LINK
+    #>
+
+    param
+    (
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$inst = $null
+    )
+
+    $query = '
+        SELECT 
+            DB_NAME(vfs.database_id) AS [Database],
+            LEFT (mf.physical_name, 2) AS [Drive],
+            mf.physical_name AS [PhysicalFileName],
+            --–virtual file latency
+            CASE WHEN num_of_reads = 0
+                THEN 0 ELSE (io_stall_read_ms / num_of_reads) END AS [ReadLatency],
+            CASE WHEN num_of_writes = 0 
+                THEN 0 ELSE (io_stall_write_ms / num_of_writes) END AS [WriteLatency],
+            CASE WHEN (num_of_reads = 0 AND num_of_writes = 0)
+                THEN 0 ELSE (io_stall / (num_of_reads + num_of_writes)) END AS [Latency],
+            --–avg bytes per IOP
+            CASE WHEN num_of_reads = 0 
+                THEN 0 ELSE (num_of_bytes_read / num_of_reads) END AS [AvgBPerRead],
+            CASE WHEN io_stall_write_ms = 0 
+                THEN 0 ELSE (num_of_bytes_written / num_of_writes) END AS [AvgBPerWrite],
+            CASE WHEN (num_of_reads = 0 AND num_of_writes = 0)
+                THEN 0 ELSE ((num_of_bytes_read + num_of_bytes_written) / 
+                    (num_of_reads + num_of_writes)) END AS [AvgBPerTransfer],    
+            num_of_reads AS [CountReads],
+            num_of_writes AS [CountWrites],
+            (num_of_reads+num_of_writes) AS [CountTotalIO],
+            CONVERT(NUMERIC(10,2),(CAST(num_of_reads AS FLOAT)/ CAST((num_of_reads+num_of_writes) AS FLOAT) * 100)) AS [PercentageRead],
+            CONVERT(NUMERIC(10,2),(CAST(num_of_writes AS FLOAT)/ CAST((num_of_reads+num_of_writes) AS FLOAT) * 100)) AS [PercentageWrite]
+        FROM sys.dm_io_virtual_file_stats (NULL,NULL) AS vfs
+        JOIN sys.master_files AS mf
+            ON vfs.database_id = mf.database_id
+            AND vfs.file_id = mf.file_id
+        ORDER BY DB_NAME(vfs.database_id);
+        GO
+    '
+
+    $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
+
+    return $result
+}
+
+Export-ModuleMember -Function Get-SQLDiskLatencies
 
 function Get-HostHarddisk
 {
