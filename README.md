@@ -19,17 +19,21 @@ The library has the following features:
 * Get the SQL Server disk latencies
 
 ## Installation
-Make a directory (if not already present) name "PSSQLLib" in one of the following standard Powershell Module directories:
-* $Home\Documents\WindowsPowerShell\Modules (%UserProfile%\Documents\WindowsPowerShell\Modules)
-* $Env:ProgramFiles\ WindowsPowerShell\Modules (%ProgramFiles%\ WindowsPowerShell\Modules)
-* $Systemroot\System32\ WindowsPowerShell\v1.0\Modules (%systemroot%\System32\ WindowsPowerShell\v1.0\Modules)
+Unzip the file.
 
-Place both the psd1, psm1, ps1 files in the module directory created earlier
+Make a directory (if not already present) named "PSSQLLib" in one of the following standard Powershell Module directories:
+* $Home\Documents\WindowsPowerShell\Modules (%UserProfile%\Documents\WindowsPowerShell\Modules)
+* $Env:ProgramFiles\WindowsPowerShell\Modules (%ProgramFiles%\ WindowsPowerShell\Modules)
+* $Systemroot\System32\WindowsPowerShell\v1.0\Modules (%systemroot%\System32\ WindowsPowerShell\v1.0\Modules)
+
+Place both the psd1 and psm1 files in the module directory created earlier.
 
 Execute the following command in a PowerShell command screen:
   Import-Module PSSQLLib
 
 To check if the module is imported correctly execute the following command:
   Get-Command -Module PSSQLLib
+  or
+  Get-Module -Name PSSQLLib
 
 You should be able to see a list of functions
