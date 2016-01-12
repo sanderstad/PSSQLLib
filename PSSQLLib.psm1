@@ -17,14 +17,20 @@
 #  PARTICULAR PURPOSE.
 #
 #  Changelog:
-#  v1.0: Initial version
-#  v1.1: Added several functions for hosts
-#  v1.2: Added functionality to get the host system information
-#        Cleaned up code, make it more readable
-#        Changed parameters to be consistent throughout functions
-#  v1.3: Added extra error catching
-#  v1.3.1: Added function for retrieving disk latencies
-#
+#  v1.0: 
+#    Initial version
+#  v1.1: 
+#    Added several functions for hosts
+#  v1.2: 
+#    Added functionality to get the host system information
+#    Cleaned up code, make it more readable
+#    Changed parameters to be consistent throughout functions
+#  v1.3: 
+#    Added extra error catching
+#  v1.3.1: 
+#    Added function for retrieving disk latencies
+#  v1.3.2:
+#    Added functionality for retrieving backups
 ################################################################################
 
 function Get-SQLConfiguration
@@ -663,6 +669,120 @@ function Get-SQLAgentJobs
 }
 
 Export-ModuleMember -Function Get-SQLAgentJobs
+
+function Get-SQLServerBackups
+{
+    <# 
+    .SYNOPSIS
+        Get the database backups
+    .DESCRIPTION
+        The function will return a list of backups over the last x days.
+        The default amount of days is 7 days.
+        
+        It's possible to enter multiple databases in the database filter parameter.
+        Just seperate the databases with a comma (,)
+
+        It's possible to enter multiple backup types in the backup type filter parameter.
+        Just seperate the backup types with a comma (,)
+        Possible backup types are:
+            - D: Full back (database backup)
+            - I: Incremental
+            - L: Log backup
+    .PARAMETER instance
+        This is the instance that needs to be connected
+    .EXAMPLE
+        Get-SQLServerBackups "SQL01"
+    .EXAMPLE
+        Get-SQLServerBackups "SQL01\INST01"
+	.EXAMPLE
+        Get-SQLServerBackups -inst "SQL01\INST01"
+    .INPUTS
+    .OUTPUTS
+        System.Array
+    .NOTES
+    .LINK
+    #>
+
+    param
+    (
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$inst = $null
+        , [Parameter(Mandatory = $false, Position=2)]
+        [int]$days = 7
+        , [Parameter(Mandatory = $false, Position=3)]
+        [string]$databaseFilter = $null
+        , [Parameter(Mandatory = $false, Position=4)]
+        [string]$backupTypeFilter = $null
+        
+    )
+     
+    # Setup the query
+    $query = " 
+        SELECT 
+	        '$inst' AS [server_name],
+	        bs.database_name AS [database_name], 
+	        bs.backup_start_date AS [start_date], 
+	        bs.backup_finish_date AS [finish_date],
+	        DATEDIFF(mi, bs.backup_start_date, bs.backup_finish_date) AS [duration],
+	        bs.expiration_date [experation_date],
+	        CASE bs.type 
+		        WHEN 'D' THEN 'Full' 
+		        WHEN 'I' THEN 'Differential'
+		        WHEN 'L' THEN 'Log' 
+	        END AS [backup_type], 
+	        CAST((bs.backup_size / 1024/ 1024) AS INT) AS [size_mb], 
+	        bmf.logical_device_name AS [logical_device_name], 
+	        bmf.physical_device_name AS [physical_device_name],  
+	        bs.name AS [backup_set],
+	        bs.description AS [description]
+        FROM
+	        msdb.dbo.backupmediafamily bmf
+        INNER JOIN msdb.dbo.backupset bs
+	        ON bmf.media_set_id = bs.media_set_id 
+        WHERE
+	        bs.backup_start_date >= DATEADD(d, -$days, GETDATE()) 
+    "
+    
+    if($databaseFilter.Length -ge 1) 
+    {
+        if($databaseFilter.Contains(","))
+        {
+            $databaseFilter = $databaseFilter.Replace(" ", "")
+            $databaseFilter = $databaseFilter.Replace(",", "','")
+            $databaseFilter = $databaseFilter.Insert(0, "'").Insert(($databaseFilter.Length + 1), "'")
+
+            $query += "AND bs.database_name IN ($databaseFilter) "
+        }
+        else
+        {
+            $query += "AND bs.database_name = '$databaseFilter' "
+        }
+    }
+
+    if($backupTypeFilter.Length -ge 1)
+    {
+        if($backupTypeFilter.Contains(","))
+        {
+            $backupTypeFilter = $backupTypeFilter.Replace(" ", "").ToUpper()
+            $backupTypeFilter = $backupTypeFilter.Replace(",", "','")
+            $backupTypeFilter = $backupTypeFilter.Insert(0, "'").Insert(($backupTypeFilter.Length + 1), "'")
+
+            $query += "AND bs.type IN ($backupTypeFilter) "
+        }
+        else
+        {
+            $backupTypeFilter = $backupTypeFilter.ToUpper()
+            $query += "AND bs.type = '$backupTypeFilter' "
+        }
+    }
+
+    $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
+
+    return $result
+}
+
+Export-ModuleMember -Function Get-SQLServerBackups
 
 function Get-SQLDiskLatencies
 {
