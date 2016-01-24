@@ -31,6 +31,9 @@
 #    Added function for retrieving disk latencies
 #  v1.3.2:
 #    Added functionality for retrieving backups
+#  v1.3.3:
+#    Added functionality for retrieving the system uptime
+#    Added functionality for retrieving the instance uptime
 ################################################################################
 
 function Get-SQLConfiguration
@@ -777,9 +780,13 @@ function Get-SQLServerBackups
         }
     }
 
+    #$query
+
     $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
 
     return $result
+
+
 }
 
 Export-ModuleMember -Function Get-SQLServerBackups
@@ -819,14 +826,14 @@ function Get-SQLDiskLatencies
             DB_NAME(vfs.database_id) AS [Database],
             LEFT (mf.physical_name, 2) AS [Drive],
             mf.physical_name AS [PhysicalFileName],
-            --–virtual file latency
+            --virtual file latency
             CASE WHEN num_of_reads = 0
                 THEN 0 ELSE (io_stall_read_ms / num_of_reads) END AS [ReadLatency],
             CASE WHEN num_of_writes = 0 
                 THEN 0 ELSE (io_stall_write_ms / num_of_writes) END AS [WriteLatency],
             CASE WHEN (num_of_reads = 0 AND num_of_writes = 0)
                 THEN 0 ELSE (io_stall / (num_of_reads + num_of_writes)) END AS [Latency],
-            --–avg bytes per IOP
+            --avg bytes per IOP
             CASE WHEN num_of_reads = 0 
                 THEN 0 ELSE (num_of_bytes_read / num_of_reads) END AS [AvgBPerRead],
             CASE WHEN io_stall_write_ms = 0 
@@ -853,6 +860,117 @@ function Get-SQLDiskLatencies
 }
 
 Export-ModuleMember -Function Get-SQLDiskLatencies
+
+function Get-SQLInstanceUptime
+{
+    <# 
+    .SYNOPSIS
+        Get the uptime of the SQL Server instance
+    .DESCRIPTION
+        The script will execute a query against the instance and retrieve
+        the start time. Based on the start time the uptime will be calculated.
+    .PARAMETER instance
+        This is the instance that needs to be connected
+    .EXAMPLE
+        Get-SQLInstanceUptime "SQL01"
+    .EXAMPLE
+        Get-SQLInstanceUptime "SQL01\INST01"
+	.EXAMPLE
+        Get-SQLInstanceUptime -inst "SQL01\INST01"
+    .INPUTS
+    .OUTPUTS
+        System.Array
+    .NOTES
+    .LINK
+    #>
+
+    param
+    (
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$inst = $null
+    )
+
+    $query = "
+        DECLARE	@start_time DATETIME ,
+	        @end_time DATETIME ,
+	        @difference DATETIME;
+
+        SELECT	@start_time = sqlserver_start_time ,
+		        @end_time = GETDATE() ,
+		        @difference = @end_time - @start_time
+        FROM	sys.dm_os_sys_info;
+
+        SELECT	@start_time AS [start_time] ,
+		        CONVERT(VARCHAR(10), DATEPART(DAY, @difference) - 1) + ' Day(s) '
+		        + RIGHT(CONVERT(VARCHAR(10), 100 + DATEPART(HOUR, @difference)), 2)
+		        + ':' + RIGHT(CONVERT(VARCHAR(10), 100 + DATEPART(MINUTE, @difference)),
+					          2) + ':' + RIGHT(CONVERT(VARCHAR(10), 100
+									           + DATEPART(SECOND, @difference)), 2) AS [uptime]
+    "
+
+    $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
+
+    return $result
+}
+
+Export-ModuleMember -Function Get-SQLInstanceUptime
+
+function Get-HostUptime
+{
+     <# 
+    .SYNOPSIS
+        Get the uptime of the host
+    .DESCRIPTION
+        The script will retrieve the boot time and local time.
+        Based on the start time the uptime will be calculated.
+    .PARAMETER instance
+        This is the instance that needs to be connected
+    .EXAMPLE
+        Get-HostUptime "SQL01"
+	.EXAMPLE
+        Get-HostUptime -hst "SQL01"
+    .INPUTS
+    .OUTPUTS
+        System.Array
+    .NOTES
+    .LINK
+    #>
+    param
+    (
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$hst = $env:COMPUTERNAME
+        , [Parameter(Mandatory = $false, Position=2)]
+        $cred = [System.Management.Automation.PSCredential]::Empty 
+    )
+
+    try 
+    { 
+        $result = @()
+
+        $os = Get-WmiObject win32_operatingsystem -ComputerName $hst -ErrorAction Stop -Credential $cred
+
+        $bootTime = $os.ConvertToDateTime($os.LastBootUpTime) 
+        $uptime = $os.ConvertToDateTime($os.LocalDateTime) - $bootTime
+
+        $uptimeString = $uptime.Days.ToString() + " Day(s) " + $uptime.Hours.ToString() + ":" + $uptime.Minutes.ToString() + ":" + $uptime.Seconds.ToString()
+
+        $result = $os | Select -property `
+            @{N="BootTime";E={$bootTime}}, `
+            @{N="Uptime";E={$uptimeString}} 
+
+
+        return $result
+    } 
+    catch [Exception] 
+    { 
+        Write-Output "$hst $($_.Exception.Message)" 
+    }
+
+}
+
+Export-ModuleMember -Function Get-HostUptime
 
 function Get-HostHarddisk
 {
