@@ -1081,7 +1081,6 @@ function Load-Assembly
     .NOTES
     .LINK
     #>
-     [CmdletBinding()]
      param(
           [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
           [String] $name
