@@ -8,8 +8,10 @@ The library has the following features:
 * Get the host harddisk information
 * Get the host hardware
 * Get the host operating system information
+* Get the host uptime
 * Get the SQL Server instance settings
 * Get the SQL Server instance configuration settings
+* Get the SQL Server instance uptime
 * Get the SQL Server login server privileges
 * Get the SQL Server databases
 * Get the SQL Server database files
