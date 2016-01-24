@@ -869,6 +869,7 @@ function Get-SQLInstanceUptime
     .DESCRIPTION
         The script will execute a query against the instance and retrieve
         the start time. Based on the start time the uptime will be calculated.
+        This function can be used from SQL Server 2008 or later
     .PARAMETER instance
         This is the instance that needs to be connected
     .EXAMPLE
