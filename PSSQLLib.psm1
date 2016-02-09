@@ -34,6 +34,8 @@
 #  v1.3.3:
 #    Added functionality for retrieving the system uptime
 #    Added functionality for retrieving the instance uptime
+#  v1.4.0
+#    Added structures to the functions
 ################################################################################
 
 function Get-HostHarddisk
@@ -55,6 +57,7 @@ function Get-HostHarddisk
     .NOTES
     .LINK
     #>
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -62,20 +65,34 @@ function Get-HostHarddisk
         [string]$hst = $null
     )
 
-    # Get the data
-	$drives= Get-WmiObject -Class Win32_LogicalDisk -Computername $hst -Errorvariable errorvar | Where {$_.drivetype -eq 3}
-    
-    # Create the result array
-    $result = @()
+    begin
+    {
+        try
+        {
+            # Get the data
+	        $drives= Get-WmiObject -Class Win32_LogicalDisk -Computername $hst -Errorvariable errorvar | Where {$_.drivetype -eq 3}
+        }
+        catch
+        {
+            Write-Output "$hst $($_.Exception.Message)"
+        }
+    }
 
-    # Get the results
-    $result = $drives | Select -property `
-		@{N="Disk";E={$_.DeviceID}},VolumeName, `
-		@{N="FreeSpaceMB";E={"{0:N2}" -f ($_.Freespace/1Mb)}}, `
-		@{N="SizeMB";E={"{0:N2}" -f ($_.Size/1Mb)}}, `
-		@{N="PercentageUsed";E={"{0:N2}" -f (($_.Size - $_.FreeSpace) / $_.Size * 100)}}
+    process
+    {
+            # Create the result array
+            $result = @()
 
-    return $result
+            # Get the results
+            $result = $drives | Select -property `
+		        @{N="Disk";E={$_.DeviceID}},VolumeName, `
+		        @{N="FreeSpaceMB";E={"{0:N2}" -f ($_.Freespace/1Mb)}}, `
+		        @{N="SizeMB";E={"{0:N2}" -f ($_.Size/1Mb)}}, `
+		        @{N="PercentageUsed";E={"{0:N2}" -f (($_.Size - $_.FreeSpace) / $_.Size * 100)}}
+
+            return $result
+        
+    }
 }
 
 function Get-HostHardware
@@ -98,6 +115,7 @@ function Get-HostHardware
     .NOTES
     .LINK
     #>
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -105,18 +123,31 @@ function Get-HostHardware
         [string]$hst = $null
     )
 
-    # Get the data
-	$computer = Get-Wmiobject -Class win32_computersystem -Computername $hst -Errorvariable errorvar
-    
-    $result = @()
+    begin
+    {
+        try
+        {
+            # Get the data
+	        $computer = Get-Wmiobject -Class win32_computersystem -Computername $hst -Errorvariable errorvar
+        }
+        catch
+        {
+            Write-Output "$hst $($_.Exception.Message)"
+        }
+    }
 
-    # Get the result
-    $result = $computer | Select Description,NumberOfLogicalProcessors,NumberOfProcessors, `
-		@{N="TotalPhysicalMemoryGB";E={"{0:N2}" -f ($_.TotalPhysicalMemory/1Gb)}}, `
-		Model,Manufacturer,PartOfDomain,CurrentTimeZone,DaylightInEffect
+    process
+    {
+        $result = @()
 
-    # Return the result
-    return $result
+        # Get the result
+        $result = $computer | Select Description,NumberOfLogicalProcessors,NumberOfProcessors, `
+		    @{N="TotalPhysicalMemoryGB";E={"{0:N2}" -f ($_.TotalPhysicalMemory/1Gb)}}, `
+		    Model,Manufacturer,PartOfDomain,CurrentTimeZone,DaylightInEffect
+
+        # Return the result
+        return $result
+    }
 }
 
 function Get-HostOperatingSystem
@@ -139,7 +170,7 @@ function Get-HostOperatingSystem
     .NOTES
     .LINK
     #>
-    
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -147,22 +178,35 @@ function Get-HostOperatingSystem
         [string]$hst = $null
     )
 
-    # Get the data
-    $os = Get-WmiObject -Class win32_operatingsystem -Computername $hst -Errorvariable errorvar
+    begin
+    {
+        try
+        {
+            # Get the data
+            $os = Get-WmiObject -Class win32_operatingsystem -Computername $hst -Errorvariable errorvar
+        }
+        catch
+        {
+            Write-Output "$hst $($_.Exception.Message)"
+        }
+    }
 
-    $result = @()
+    process
+    {
+        $result = @()
 
-    # Get the results
-    $result = $os | Select `
-		OSArchitecture,OSLanguage,OSProductSuite,OSType,BuildNumbe,`
-		BuildType,Version,WindowsDirectory,PlusVersionNumber,`
-		@{N="FreePhysicalMemoryMB";E={"{0:N2}" -f ($_.FreePhysicalMemory / 1Mb)}},`
-		@{N="FreeSpaceInPagingFilesMB";E={"{0:N2}" -f ($_.FreeSpaceInPagingFiles)}},`
-		@{N="FreeVirtualMemoryMB";E={"{0:N2}" -f ($_.FreeVirtualMemory)}},`
-		PAEEnabled,ServicePackMajorVersion,ServicePackMinorVersion
+        # Get the results
+        $result = $os | Select `
+		    OSArchitecture,OSLanguage,OSProductSuite,OSType,BuildNumbe,`
+		    BuildType,Version,WindowsDirectory,PlusVersionNumber,`
+		    @{N="FreePhysicalMemoryMB";E={"{0:N2}" -f ($_.FreePhysicalMemory / 1Mb)}},`
+		    @{N="FreeSpaceInPagingFilesMB";E={"{0:N2}" -f ($_.FreeSpaceInPagingFiles)}},`
+		    @{N="FreeVirtualMemoryMB";E={"{0:N2}" -f ($_.FreeVirtualMemory)}},`
+		    PAEEnabled,ServicePackMajorVersion,ServicePackMinorVersion
 
-    #return the result
-    return $result
+        #return the result
+        return $result
+    }
 
 }
 
@@ -185,6 +229,7 @@ function Get-HostSQLServerServices
     .NOTES
     .LINK
     #>
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -192,8 +237,11 @@ function Get-HostSQLServerServices
         [string]$hst = $null
     )
 
-    return Get-WmiObject win32_Service -Computer $hst | where {$_.DisplayName -match "SQL Server"} | `
-		select SystemName, DisplayName, Name, State, Status, StartMode, StartName 
+    process
+    {
+        return Get-WmiObject win32_Service -Computer $hst | where {$_.DisplayName -match "SQL Server"} | `
+		    select SystemName, DisplayName, Name, State, Status, StartMode, StartName 
+    }
 }
 
 function Get-HostSystemInformation()
@@ -215,23 +263,37 @@ function Get-HostSystemInformation()
     .NOTES
     .LINK
     #>
+    [Cmdletbinding()]
     param(
         [Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
         [string]$hst = $null
     )
 
-    $result = @()
+    begin
+    {
+        try
+        {
+            $data = Get-WmiObject -class "Win32_ComputerSystem" -Namespace "root\CIMV2" -ComputerName $hst
 
-    $data = Get-WmiObject -class "Win32_ComputerSystem" -Namespace "root\CIMV2" -ComputerName $hst
+        }
+        catch
+        {
+            Write-Output "$hst $($_.Exception.Message)"
+        }
+    }
 
-    $result = $data | Select `
-        Name,Domain,Manufacturer,Model, `
-        NumberOfLogicalProcessors,NumberOfProcessors,LastLoadInfo, `
-        @{Name='TotalPhysicalMemoryMB';Expression={[math]::round(($_.TotalPhysicalMemory / 1024 / 1024))}}
+    process
+    {
+        $result = @()
+        $result = $data | Select `
+            Name,Domain,Manufacturer,Model, `
+            NumberOfLogicalProcessors,NumberOfProcessors,LastLoadInfo, `
+            @{Name='TotalPhysicalMemoryMB';Expression={[math]::round(($_.TotalPhysicalMemory / 1024 / 1024))}}
 
 
-    return $result
+        return $result
+    }
 
 }
 
@@ -255,6 +317,7 @@ function Get-HostUptime
     .NOTES
     .LINK
     #>
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -264,11 +327,21 @@ function Get-HostUptime
         $cred = [System.Management.Automation.PSCredential]::Empty 
     )
 
-    try 
-    { 
+    begin
+    {
+        try 
+        { 
+            $os = Get-WmiObject win32_operatingsystem -ComputerName $hst -ErrorAction Stop -Credential $cred
+        } 
+        catch [Exception] 
+        { 
+            Write-Output "$hst $($_.Exception.Message)" 
+        }
+    }
+    
+    process
+    {
         $result = @()
-
-        $os = Get-WmiObject win32_operatingsystem -ComputerName $hst -ErrorAction Stop -Credential $cred
 
         $bootTime = $os.ConvertToDateTime($os.LastBootUpTime) 
         $uptime = $os.ConvertToDateTime($os.LocalDateTime) - $bootTime
@@ -281,12 +354,7 @@ function Get-HostUptime
 
 
         return $result
-    } 
-    catch [Exception] 
-    { 
-        Write-Output "$hst $($_.Exception.Message)" 
     }
-
 }
 
 ##################################################
@@ -313,6 +381,7 @@ function Get-SQLAgentJobs
     .NOTES
     .LINK
     #>
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -320,34 +389,40 @@ function Get-SQLAgentJobs
         [string]$inst = $null
     )
 
-    # Check if assembly is loaded
-    Load-Assembly -name 'Microsoft.SqlServer.SMO'
-
-    # Check if the instance object is already initiated
-    if($server -eq $null)
+    begin
     {
-        try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-        }
-        catch [Exception]
+        # Check if assembly is loaded
+        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+        
+        # Check if the instance object is already initiated
+        if($server -eq $null)
         {
-            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            try{
+                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
+            }
+            catch [Exception]
+            {
+                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            }
         }
     }
 
-    # Get the jobs
-    $server.JobServer.Jobs
+    process
+    {
+        # Get the jobs
+        $server.JobServer.Jobs
 
-    # Create the result array
-    $result = @()
+        # Create the result array
+        $result = @()
 
-    # Get the results
-    $result = $jobs | Select `
-		Name,JobType,IsEnabled,DateCreated,DateLastModified,LastRunDate,`
-		LastRunOutcome,NextRunDate,OwnerLoginName,Category | Sort-Object Name 
+        # Get the results
+        $result = $jobs | Select `
+		    Name,JobType,IsEnabled,DateCreated,DateLastModified,LastRunDate,`
+		    LastRunOutcome,NextRunDate,OwnerLoginName,Category | Sort-Object Name 
 
-    # Return the result
-    return $result
+        # Return the result
+        return $result
+    }
 }
 
 function Get-SQLConfiguration
@@ -372,7 +447,7 @@ function Get-SQLConfiguration
     .NOTES
     .LINK
     #>
-
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -380,33 +455,38 @@ function Get-SQLConfiguration
         [string]$inst = $null
     )
     
-    # Check if assembly is loaded
-    Load-Assembly -name 'Microsoft.SqlServer.Smo'
-
-    # Define the array
-    $result = @()
-
-    # Check if the instance object is already initiated
-    if($server -eq $null)
+    begin
     {
-        try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-        }
-        catch [Exception]
+        # Check if assembly is loaded
+        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+        
+        # Check if the instance object is already initiated
+        if($server -eq $null)
         {
-            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            try{
+                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
+            }
+            catch [Exception]
+            {
+                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            }
         }
     }
+    
+    process
+    {
+        # Define the array
+        $result = @()
 
-    # Get the configurations
-    $configuration = $server.Configuration
+        # Get the configurations
+        $configuration = $server.Configuration
 
-    # Get all the properties
-    $result = $configuration.Properties 
+        # Get all the properties
+        $result = $configuration.Properties 
 
-    # Return the result
-    return $result
-
+        # Return the result
+        return $result
+    }
 }
 
 function Get-SQLDatabaseFiles
@@ -432,6 +512,7 @@ function Get-SQLDatabaseFiles
     .NOTES
     .LINK
     #>
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -439,77 +520,80 @@ function Get-SQLDatabaseFiles
         [string]$inst = $null
     )
 
-    # Check if assembly is loaded
-    Load-Assembly -name 'Microsoft.SqlServer.SMO'
-
-    # Define the array
-    $dataFiles = @()
-    $logFiles = @()
-    $result = @()
-
-    # Check if the instance object is already initiated
-    if($server -eq $null)
+    begin
     {
-        try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-        }
-        catch [Exception]
+        # Check if assembly is loaded
+        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+        
+        # Check if the instance object is already initiated
+        if($server -eq $null)
         {
-            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            try{
+                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
+            }
+            catch [Exception]
+            {
+                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            }
         }
     }
 
-    # Get all the databases
-    $databases = $server.Databases
-
-    # Loop through all the databases
-    foreach($database in $databases)
+    process
     {
-        try{
-            # Get the filegroups for the database
-            $filegroups = $database.FileGroups
+        # Define the array
+        $dataFiles = @()
+        $logFiles = @()
+        $result = @()
+        # Get all the databases
+        $databases = $server.Databases
 
+        # Loop through all the databases
+        foreach($database in $databases)
+        {
+            try{
+                # Get the filegroups for the database
+                $filegroups = $database.FileGroups
 
+                # Loop through all the filegroups
+                foreach($filegroup in $filegroups)
+                {
+                    # Get all the data files from the filegroup
+                    $files = $filegroup.Files
 
-            # Loop through all the filegroups
-            foreach($filegroup in $filegroups)
-            {
+                    # Loop through all the data files
+                    foreach($file in $files)
+                    {
+                        $result += $file | Select `
+					        @{Name="DatabaseName"; Expression={$database.Name}}, Name, `
+					        @{Name="FileType";Expression={"ROWS"}}, `
+					        @{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
+					        @{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
+					        Growth, GrowthType, Size, UsedSpace
+                    }
+                }
+
                 # Get all the data files from the filegroup
-                $files = $filegroup.Files
+                $files = $database.LogFiles
 
-                # Loop through all the data files
+                # Loop through all the log files
                 foreach($file in $files)
                 {
                     $result += $file | Select `
-					    @{Name="DatabaseName"; Expression={$database.Name}}, Name, `
-					    @{Name="FileType";Expression={"ROWS"}}, `
-					    @{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
-					    @{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
-					    Growth, GrowthType, Size, UsedSpace
+				        @{Name="DatabaseName"; Expression={$database.Name}}, Name, `
+				        @{Name="FileType";Expression={"LOG"}}, `
+				        @{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
+				        @{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
+				        Growth, GrowthType, Size, UsedSpace
                 }
-            }
-
-            # Get all the data files from the filegroup
-            $files = $database.LogFiles
-
-            # Loop through all the log files
-            foreach($file in $files)
-            {
-                $result += $file | Select `
-				    @{Name="DatabaseName"; Expression={$database.Name}}, Name, `
-				    @{Name="FileType";Expression={"LOG"}}, `
-				    @{Name="Directory"; Expression={$file.FileName | Split-Path -Parent}}, `
-				    @{Name="FileName"; Expression={$file.FileName | Split-Path -Leaf}}, `
-				    Growth, GrowthType, Size, UsedSpace
-            }
-        } 
-        catch{
+            } 
+            catch{
             
-        } 
+            } 
 
+        }
+
+        return $result
     }
-
-    return $result
 }
 
 function Get-SQLDatabasePrivileges
@@ -533,7 +617,7 @@ function Get-SQLDatabasePrivileges
     .NOTES
     .LINK
     #>
-    
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -541,78 +625,84 @@ function Get-SQLDatabasePrivileges
         [string]$inst = $null
     )
     
-    # Check if assembly is loaded
-    Load-Assembly -name 'Microsoft.SqlServer.SMO'
-
-    # Check if the instance object is already initiated
-    if($server -eq $null)
+    begin
     {
-        try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-        }
-        catch [Exception]
+        # Check if assembly is loaded
+        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+        
+        # Check if the instance object is already initiated
+        if($server -eq $null)
         {
-            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            try{
+                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
+            }
+            catch [Exception]
+            {
+                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            }
         }
     }
 
-    # Create the result array
-    $result = @()
-
-    # Create the memberRoles array
-    $userRoles = @()
-
-    # Get all the databases
-    $databases = $server.Databases
-    
-    # Loop through the databases
-    foreach($database in $databases)
+    process
     {
-        # Get all the logins
-        $users = $database.Users
-        
-        # Get all the roles
-        $roles = $database.Roles
-        
-        # Loop through the logins
-        foreach($user in $users)
+        # Create the result array
+        $result = @()
+
+        # Create the memberRoles array
+        $userRoles = @()
+
+        # Get all the databases
+        $databases = $server.Databases
+    
+        # Loop through the databases
+        foreach($database in $databases)
         {
-            # Check if user is not a system user
-            if(
-				($user.Name -ne "dbo") `
-				-and ($user.Name -notlike "##*") `
-				-and ($user.Name -ne "INFORMATION_SCHEMA") `
-				-and ($user.Name -ne "sys") `
-				-and ($user.Name -ne "guest"))
+            # Get all the logins
+            $users = $database.Users
+        
+            # Get all the roles
+            $roles = $database.Roles
+        
+            # Loop through the logins
+            foreach($user in $users)
             {
-
-                # Loop through the roles
-                foreach($role in $roles)
+                # Check if user is not a system user
+                if(
+				    ($user.Name -ne "dbo") `
+				    -and ($user.Name -notlike "##*") `
+				    -and ($user.Name -ne "INFORMATION_SCHEMA") `
+				    -and ($user.Name -ne "sys") `
+				    -and ($user.Name -ne "guest"))
                 {
-                    # Get all the members of the role
-                    $roleMembers = $role.EnumMembers()
 
-                    # Check if the login is in the list
-                    if($roleMembers -contains $user.Name)
+                    # Loop through the roles
+                    foreach($role in $roles)
                     {
-                        $userRoles += $role.Name
+                        # Get all the members of the role
+                        $roleMembers = $role.EnumMembers()
+
+                        # Check if the login is in the list
+                        if($roleMembers -contains $user.Name)
+                        {
+                            $userRoles += $role.Name
+                        }
                     }
+
+                    # Combine the results
+                    $result += $database | Select `
+					    @{N="DatabaseName";E={$database.Name}},`
+					    @{N="UserName";E={$user.Name}},`
+					    @{N="UserType"; E={$user.LoginType}},`
+					    @{N="DatabaseRoles";E={([string]::Join(",", $userRoles))}}
                 }
 
-                # Combine the results
-                $result += $database | Select `
-					@{N="DatabaseName";E={$database.Name}},`
-					@{N="UserName";E={$user.Name}},`
-					@{N="UserType"; E={$user.LoginType}},`
-					@{N="DatabaseRoles";E={([string]::Join(",", $userRoles))}}
+                # Clear the array
+                $userRoles = @()
             }
-
-            # Clear the array
-            $userRoles = @()
         }
-    }
 
-    return $result
+        return $result
+    }
 }
 
 function Get-SQLDatabases
@@ -637,6 +727,7 @@ function Get-SQLDatabases
     .NOTES
     .LINK
     #>
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -644,42 +735,47 @@ function Get-SQLDatabases
         [string]$inst = $null
     )
 
-    # Check if assembly is loaded
-    Load-Assembly -name 'Microsoft.SqlServer.SMO'
-
-    # Define the array
-    $result = @()
-
-    # Check if the instance object is already initiated
-    if($server -eq $null)
+    begin
     {
-        try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-        }
-        catch [Exception]
+        # Check if assembly is loaded
+        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+        
+        # Check if the instance object is already initiated
+        if($server -eq $null)
         {
-            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            try{
+                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
+            }
+            catch [Exception]
+            {
+                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            }
         }
     }
 
-    # Get all the databases
-    $databases = $server.Databases
+    process
+    {
+        # Define the array
+        $result = @()
+        # Get all the databases
+        $databases = $server.Databases
 
-    # Get the properties of each database
-    $result = $databases | Select `
-		ID,Name,AutoClose,AutoCreateIncrementalStatisticsEnabled,`
-		AutoCreateStatisticsEnabled,AutoShrink,AutoUpdateStatisticsAsync,AutoUpdateStatisticsEnabled,`
-		AvailabilityGroupName,CloseCursorsOnCommitEnabled,Collation,`
-		CompatibilityLevel,CreateDate,DataSpaceUsage,`
-		DelayedDurability,EncryptionEnabled,HasDatabaseEncryptionKey,HasFileInCloud,HasFullBackup,`
-		IndexSpaceUsage,IsDbSecurityAdmin,IsFullTextEnabled,IsManagementDataWarehouse,IsMirroringEnabled,`
-		LastBackupDate,LastDifferentialBackupDate,LastLogBackupDate,`
-		Owner,PageVerify,PolicyHealthState,PrimaryFilePath,ReadOnly,`
-		RecoveryModel,RecursiveTriggersEnabled,Size,SnapshotIsolationState,SpaceAvailable,`
-		Status,TargetRecoveryTime,Trustworthy,UserAccess,UserName,Version 
+        # Get the properties of each database
+        $result = $databases | Select `
+		    ID,Name,AutoClose,AutoCreateIncrementalStatisticsEnabled,`
+		    AutoCreateStatisticsEnabled,AutoShrink,AutoUpdateStatisticsAsync,AutoUpdateStatisticsEnabled,`
+		    AvailabilityGroupName,CloseCursorsOnCommitEnabled,Collation,`
+		    CompatibilityLevel,CreateDate,DataSpaceUsage,`
+		    DelayedDurability,EncryptionEnabled,HasDatabaseEncryptionKey,HasFileInCloud,HasFullBackup,`
+		    IndexSpaceUsage,IsDbSecurityAdmin,IsFullTextEnabled,IsManagementDataWarehouse,IsMirroringEnabled,`
+		    LastBackupDate,LastDifferentialBackupDate,LastLogBackupDate,`
+		    Owner,PageVerify,PolicyHealthState,PrimaryFilePath,ReadOnly,`
+		    RecoveryModel,RecursiveTriggersEnabled,Size,SnapshotIsolationState,SpaceAvailable,`
+		    Status,TargetRecoveryTime,Trustworthy,UserAccess,UserName,Version 
 
-    # Return the result
-    return $result
+        # Return the result
+        return $result
+    }
 }
 
 function Get-SQLDatabaseUsers
@@ -707,6 +803,7 @@ function Get-SQLDatabaseUsers
     .NOTES
     .LINK
     #>
+    [Cmdletbinding()]
     param
     (
 		[Parameter(Mandatory = $true, Position=1)]
@@ -717,43 +814,49 @@ function Get-SQLDatabaseUsers
         [string]$dbfilter = $null
     )
     
-    # Check if assembly is loaded
-    Load-Assembly -name 'Microsoft.SqlServer.SMO'
-
-    # Check if the instance object is already initiated
-    if($server -eq $null)
+    begin
     {
-        try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-        }
-        catch [Exception]
+        # Check if assembly is loaded
+        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+        
+        # Check if the instance object is already initiated
+        if($server -eq $null)
         {
-            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            try{
+                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
+            }
+            catch [Exception]
+            {
+                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            }
         }
     }
 
-    # Create the result array
-    $result = @()
-
-    # Get all the databases
-    $databases = $server.Databases
-
-    # Loop through the databases
-    foreach($database in $databases)
+    process
     {
-        # Get the database users
-        $databaseUsers = $database.Users 
+        # Create the result array
+        $result = @()
 
-        # Get the result
-        $result += $databaseUsers | Select `
-			Parent,Name,AsymmetricKey,AuthenticationType,Certificate,`
-			CreateDate,DateLastModified,DefaultLanguageLcid,DefaultLanguageName,`
-			DefaultSchema,HasDBAccess,ID,IsSystemObject,Login,LoginType,`
-			PolicyHealthState,Sid,UserType 
-    }
+        # Get all the databases
+        $databases = $server.Databases
+
+        # Loop through the databases
+        foreach($database in $databases)
+        {
+            # Get the database users
+            $databaseUsers = $database.Users 
+
+            # Get the result
+            $result += $databaseUsers | Select `
+			    Parent,Name,AsymmetricKey,AuthenticationType,Certificate,`
+			    CreateDate,DateLastModified,DefaultLanguageLcid,DefaultLanguageName,`
+			    DefaultSchema,HasDBAccess,ID,IsSystemObject,Login,LoginType,`
+			    PolicyHealthState,Sid,UserType 
+        }
     
-    # Return the results
-    return $result 
+        # Return the results
+        return $result 
+    }
 }
 
 function Get-SQLDiskLatencies
@@ -778,7 +881,7 @@ function Get-SQLDiskLatencies
     .NOTES
     .LINK
     #>
-
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -786,42 +889,52 @@ function Get-SQLDiskLatencies
         [string]$inst = $null
     )
 
-    $query = '
-        SELECT 
-            DB_NAME(vfs.database_id) AS [Database],
-            LEFT (mf.physical_name, 2) AS [Drive],
-            mf.physical_name AS [PhysicalFileName],
-            --virtual file latency
-            CASE WHEN num_of_reads = 0
-                THEN 0 ELSE (io_stall_read_ms / num_of_reads) END AS [ReadLatency],
-            CASE WHEN num_of_writes = 0 
-                THEN 0 ELSE (io_stall_write_ms / num_of_writes) END AS [WriteLatency],
-            CASE WHEN (num_of_reads = 0 AND num_of_writes = 0)
-                THEN 0 ELSE (io_stall / (num_of_reads + num_of_writes)) END AS [Latency],
-            --avg bytes per IOP
-            CASE WHEN num_of_reads = 0 
-                THEN 0 ELSE (num_of_bytes_read / num_of_reads) END AS [AvgBPerRead],
-            CASE WHEN io_stall_write_ms = 0 
-                THEN 0 ELSE (num_of_bytes_written / num_of_writes) END AS [AvgBPerWrite],
-            CASE WHEN (num_of_reads = 0 AND num_of_writes = 0)
-                THEN 0 ELSE ((num_of_bytes_read + num_of_bytes_written) / 
-                    (num_of_reads + num_of_writes)) END AS [AvgBPerTransfer],    
-            num_of_reads AS [CountReads],
-            num_of_writes AS [CountWrites],
-            (num_of_reads+num_of_writes) AS [CountTotalIO],
-            CONVERT(NUMERIC(10,2),(CAST(num_of_reads AS FLOAT)/ CAST((num_of_reads+num_of_writes) AS FLOAT) * 100)) AS [PercentageRead],
-            CONVERT(NUMERIC(10,2),(CAST(num_of_writes AS FLOAT)/ CAST((num_of_reads+num_of_writes) AS FLOAT) * 100)) AS [PercentageWrite]
-        FROM sys.dm_io_virtual_file_stats (NULL,NULL) AS vfs
-        JOIN sys.master_files AS mf
-            ON vfs.database_id = mf.database_id
-            AND vfs.file_id = mf.file_id
-        ORDER BY DB_NAME(vfs.database_id);
-        GO
-    '
+    process
+    {
+        $query = '
+            SELECT 
+                DB_NAME(vfs.database_id) AS [Database],
+                LEFT (mf.physical_name, 2) AS [Drive],
+                mf.physical_name AS [PhysicalFileName],
+                --virtual file latency
+                CASE WHEN num_of_reads = 0
+                    THEN 0 ELSE (io_stall_read_ms / num_of_reads) END AS [ReadLatency],
+                CASE WHEN num_of_writes = 0 
+                    THEN 0 ELSE (io_stall_write_ms / num_of_writes) END AS [WriteLatency],
+                CASE WHEN (num_of_reads = 0 AND num_of_writes = 0)
+                    THEN 0 ELSE (io_stall / (num_of_reads + num_of_writes)) END AS [Latency],
+                --avg bytes per IOP
+                CASE WHEN num_of_reads = 0 
+                    THEN 0 ELSE (num_of_bytes_read / num_of_reads) END AS [AvgBPerRead],
+                CASE WHEN io_stall_write_ms = 0 
+                    THEN 0 ELSE (num_of_bytes_written / num_of_writes) END AS [AvgBPerWrite],
+                CASE WHEN (num_of_reads = 0 AND num_of_writes = 0)
+                    THEN 0 ELSE ((num_of_bytes_read + num_of_bytes_written) / 
+                        (num_of_reads + num_of_writes)) END AS [AvgBPerTransfer],    
+                num_of_reads AS [CountReads],
+                num_of_writes AS [CountWrites],
+                (num_of_reads+num_of_writes) AS [CountTotalIO],
+                CONVERT(NUMERIC(10,2),(CAST(num_of_reads AS FLOAT)/ CAST((num_of_reads+num_of_writes) AS FLOAT) * 100)) AS [PercentageRead],
+                CONVERT(NUMERIC(10,2),(CAST(num_of_writes AS FLOAT)/ CAST((num_of_reads+num_of_writes) AS FLOAT) * 100)) AS [PercentageWrite]
+            FROM sys.dm_io_virtual_file_stats (NULL,NULL) AS vfs
+            JOIN sys.master_files AS mf
+                ON vfs.database_id = mf.database_id
+                AND vfs.file_id = mf.file_id
+            ORDER BY DB_NAME(vfs.database_id);
+            GO
+        '
 
-    $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
+        try{
+            $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
+        }
+        catch [Exception]
+        {
+            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        }
+        
 
-    return $result
+        return $result
+    }
 }
 
 function Get-SQLInstanceSettings
@@ -846,6 +959,7 @@ function Get-SQLInstanceSettings
     .NOTES
     .LINK
     #>
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -853,40 +967,46 @@ function Get-SQLInstanceSettings
         [string]$inst = $null
     )
     
-    # Check if assembly is loaded
-    Load-Assembly -name 'Microsoft.SqlServer.SMO'
-
-    # Define the array
-    $result = @()
-
-    # Check if the instance object is already initiated
-    if($server -eq $null)
+    begin
     {
-        try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-        }
-        catch [Exception]
+        # Check if assembly is loaded
+        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+        
+        # Check if the instance object is already initiated
+        if($server -eq $null)
         {
-            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            try{
+                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
+            }
+            catch [Exception]
+            {
+                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+            }
         }
     }
 
-    # Get the instance settings
-    $result = $server | Select `
-		AuditLevel,BackupDirectory,BrowserServiceAccount,BrowserStartMode,BuildClrVersionString,`
-		BuildNumber,ClusterName,ClusterQuorumState,ClusterQuorumType,Collation,CollationID,`
-		ComparisonStyle,ComputerNamePhysicalNetBIOS,DefaultFile,DefaultLog,Edition,ErrorLogPath,`
-		FilestreamLevel,FilestreamShareName,HadrManagerStatus,InstallDataDirectory,InstallSharedDirectory,`
-		InstanceName,IsCaseSensitive,IsClustered,IsFullTextInstalled,IsHadrEnabled,IsSingleUser,IsXTPSupported,`
-		Language,LoginMode,MailProfile,MasterDBLogPath,MasterDBPath,MaxPrecision,NamedPipesEnabled,NetName,`
-		NumberOfLogFiles,OSVersion,PerfMonMode,PhysicalMemory,PhysicalMemoryUsageInKB,Platform,Processors,`
-		ProcessorUsage,Product,ProductLevel,ResourceLastUpdateDateTime,ResourceVersionString,RootDirectory,`
-		ServerType,ServiceAccount,ServiceInstanceId,ServiceName,ServiceStartMode,SqlCharSet,SqlCharSetName,`
-		SqlDomainGroup,SqlSortOrder,SqlSortOrderName,Status,TapeLoadWaitTime,TcpEnabled,VersionMajor,VersionMinor,`
-		VersionString,Name,Version,EngineEdition,ResourceVersion,BuildClrVersion,DefaultTextMode 
+    process
+    {
+        # Define the array
+        $result = @()
 
-    # Return the result
-    return $result
+        # Get the instance settings
+        $result = $server | Select `
+		    AuditLevel,BackupDirectory,BrowserServiceAccount,BrowserStartMode,BuildClrVersionString,`
+		    BuildNumber,ClusterName,ClusterQuorumState,ClusterQuorumType,Collation,CollationID,`
+		    ComparisonStyle,ComputerNamePhysicalNetBIOS,DefaultFile,DefaultLog,Edition,ErrorLogPath,`
+		    FilestreamLevel,FilestreamShareName,HadrManagerStatus,InstallDataDirectory,InstallSharedDirectory,`
+		    InstanceName,IsCaseSensitive,IsClustered,IsFullTextInstalled,IsHadrEnabled,IsSingleUser,IsXTPSupported,`
+		    Language,LoginMode,MailProfile,MasterDBLogPath,MasterDBPath,MaxPrecision,NamedPipesEnabled,NetName,`
+		    NumberOfLogFiles,OSVersion,PerfMonMode,PhysicalMemory,PhysicalMemoryUsageInKB,Platform,Processors,`
+		    ProcessorUsage,Product,ProductLevel,ResourceLastUpdateDateTime,ResourceVersionString,RootDirectory,`
+		    ServerType,ServiceAccount,ServiceInstanceId,ServiceName,ServiceStartMode,SqlCharSet,SqlCharSetName,`
+		    SqlDomainGroup,SqlSortOrder,SqlSortOrderName,Status,TapeLoadWaitTime,TcpEnabled,VersionMajor,VersionMinor,`
+		    VersionString,Name,Version,EngineEdition,ResourceVersion,BuildClrVersion,DefaultTextMode 
+
+        # Return the result
+        return $result
+    }
 }
 
 function Get-SQLInstanceUptime
@@ -912,7 +1032,7 @@ function Get-SQLInstanceUptime
     .NOTES
     .LINK
     #>
-
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -920,27 +1040,36 @@ function Get-SQLInstanceUptime
         [string]$inst = $null
     )
 
-    $query = "
-        DECLARE	@start_time DATETIME ,
-	        @end_time DATETIME ,
-	        @difference DATETIME;
+    process
+    {
+        $query = "
+            DECLARE	@start_time DATETIME ,
+	            @end_time DATETIME ,
+	            @difference DATETIME;
 
-        SELECT	@start_time = sqlserver_start_time ,
-		        @end_time = GETDATE() ,
-		        @difference = @end_time - @start_time
-        FROM	sys.dm_os_sys_info;
+            SELECT	@start_time = sqlserver_start_time ,
+		            @end_time = GETDATE() ,
+		            @difference = @end_time - @start_time
+            FROM	sys.dm_os_sys_info;
 
-        SELECT	@start_time AS [start_time] ,
-		        CONVERT(VARCHAR(10), DATEPART(DAY, @difference) - 1) + ' Day(s) '
-		        + RIGHT(CONVERT(VARCHAR(10), 100 + DATEPART(HOUR, @difference)), 2)
-		        + ':' + RIGHT(CONVERT(VARCHAR(10), 100 + DATEPART(MINUTE, @difference)),
-					          2) + ':' + RIGHT(CONVERT(VARCHAR(10), 100
-									           + DATEPART(SECOND, @difference)), 2) AS [uptime]
-    "
+            SELECT	@start_time AS [start_time] ,
+		            CONVERT(VARCHAR(10), DATEPART(DAY, @difference) - 1) + ' Day(s) '
+		            + RIGHT(CONVERT(VARCHAR(10), 100 + DATEPART(HOUR, @difference)), 2)
+		            + ':' + RIGHT(CONVERT(VARCHAR(10), 100 + DATEPART(MINUTE, @difference)),
+					              2) + ':' + RIGHT(CONVERT(VARCHAR(10), 100
+									               + DATEPART(SECOND, @difference)), 2) AS [uptime]
+        "
 
-    $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
+        try{
+            $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
+        }
+        catch [Exception]
+        {
+            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        }
 
-    return $result
+        return $result
+    }
 }
 
 function Get-SQLServerBackups
@@ -975,7 +1104,7 @@ function Get-SQLServerBackups
     .NOTES
     .LINK
     #>
-
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -989,74 +1118,82 @@ function Get-SQLServerBackups
         [string]$backupTypeFilter = $null
         
     )
-     
-    # Setup the query
-    $query = " 
-        SELECT 
-	        '$inst' AS [server_name],
-	        bs.database_name AS [database_name], 
-	        bs.backup_start_date AS [start_date], 
-	        bs.backup_finish_date AS [finish_date],
-	        DATEDIFF(mi, bs.backup_start_date, bs.backup_finish_date) AS [duration],
-	        bs.expiration_date [experation_date],
-	        CASE bs.type 
-		        WHEN 'D' THEN 'Full' 
-		        WHEN 'I' THEN 'Differential'
-		        WHEN 'L' THEN 'Log' 
-	        END AS [backup_type], 
-	        CAST((bs.backup_size / 1024/ 1024) AS INT) AS [size_mb], 
-	        bmf.logical_device_name AS [logical_device_name], 
-	        bmf.physical_device_name AS [physical_device_name],  
-	        bs.name AS [backup_set],
-	        bs.description AS [description]
-        FROM
-	        msdb.dbo.backupmediafamily bmf
-        INNER JOIN msdb.dbo.backupset bs
-	        ON bmf.media_set_id = bs.media_set_id 
-        WHERE
-	        bs.backup_start_date >= DATEADD(d, -$days, GETDATE()) 
-    "
     
-    if($databaseFilter.Length -ge 1) 
+    begin
     {
-        if($databaseFilter.Contains(","))
+        # Setup the query
+        $query = " 
+            SELECT 
+	            '$inst' AS [server_name],
+	            bs.database_name AS [database_name], 
+	            bs.backup_start_date AS [start_date], 
+	            bs.backup_finish_date AS [finish_date],
+	            DATEDIFF(mi, bs.backup_start_date, bs.backup_finish_date) AS [duration],
+	            bs.expiration_date [experation_date],
+	            CASE bs.type 
+		            WHEN 'D' THEN 'Full' 
+		            WHEN 'I' THEN 'Differential'
+		            WHEN 'L' THEN 'Log' 
+	            END AS [backup_type], 
+	            CAST((bs.backup_size / 1024/ 1024) AS INT) AS [size_mb], 
+	            bmf.logical_device_name AS [logical_device_name], 
+	            bmf.physical_device_name AS [physical_device_name],  
+	            bs.name AS [backup_set],
+	            bs.description AS [description]
+            FROM
+	            msdb.dbo.backupmediafamily bmf
+            INNER JOIN msdb.dbo.backupset bs
+	            ON bmf.media_set_id = bs.media_set_id 
+            WHERE
+	            bs.backup_start_date >= DATEADD(d, -$days, GETDATE()) 
+        "
+    
+        if($databaseFilter.Length -ge 1) 
         {
-            $databaseFilter = $databaseFilter.Replace(" ", "")
-            $databaseFilter = $databaseFilter.Replace(",", "','")
-            $databaseFilter = $databaseFilter.Insert(0, "'").Insert(($databaseFilter.Length + 1), "'")
+            if($databaseFilter.Contains(","))
+            {
+                $databaseFilter = $databaseFilter.Replace(" ", "")
+                $databaseFilter = $databaseFilter.Replace(",", "','")
+                $databaseFilter = $databaseFilter.Insert(0, "'").Insert(($databaseFilter.Length + 1), "'")
 
-            $query += "AND bs.database_name IN ($databaseFilter) "
+                $query += "AND bs.database_name IN ($databaseFilter) "
+            }
+            else
+            {
+                $query += "AND bs.database_name = '$databaseFilter' "
+            }
         }
-        else
+
+        if($backupTypeFilter.Length -ge 1)
         {
-            $query += "AND bs.database_name = '$databaseFilter' "
+            if($backupTypeFilter.Contains(","))
+            {
+                $backupTypeFilter = $backupTypeFilter.Replace(" ", "").ToUpper()
+                $backupTypeFilter = $backupTypeFilter.Replace(",", "','")
+                $backupTypeFilter = $backupTypeFilter.Insert(0, "'").Insert(($backupTypeFilter.Length + 1), "'")
+
+                $query += "AND bs.type IN ($backupTypeFilter) "
+            }
+            else
+            {
+                $backupTypeFilter = $backupTypeFilter.ToUpper()
+                $query += "AND bs.type = '$backupTypeFilter' "
+            }
         }
     }
 
-    if($backupTypeFilter.Length -ge 1)
+    process
     {
-        if($backupTypeFilter.Contains(","))
+        try{
+            $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
+        }
+        catch [Exception]
         {
-            $backupTypeFilter = $backupTypeFilter.Replace(" ", "").ToUpper()
-            $backupTypeFilter = $backupTypeFilter.Replace(",", "','")
-            $backupTypeFilter = $backupTypeFilter.Insert(0, "'").Insert(($backupTypeFilter.Length + 1), "'")
+            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        }
 
-            $query += "AND bs.type IN ($backupTypeFilter) "
-        }
-        else
-        {
-            $backupTypeFilter = $backupTypeFilter.ToUpper()
-            $query += "AND bs.type = '$backupTypeFilter' "
-        }
+        return $result
     }
-
-    #$query
-
-    $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
-
-    return $result
-
-
 }
 
 function Get-SQLServerPrivileges
@@ -1081,7 +1218,7 @@ function Get-SQLServerPrivileges
     .NOTES
     .LINK
     #>
-    
+    [Cmdletbinding()]
     param
     (
         [Parameter(Mandatory = $true, Position=1)]
@@ -1089,60 +1226,66 @@ function Get-SQLServerPrivileges
         [string]$inst = $null
     )
     
-    # Check if assembly is loaded
-    Load-Assembly -name 'Microsoft.SqlServer.SMO'
-
-    # Check if the instance object is already initiated
-    if($server -eq $null)
+    begin
     {
-        try{
-            $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-        }
-        catch [Exception]
-        {
-            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-        }
-    }
-
-    # Create the result array
-    $result = @()
-
-    # Create the array for the server roles
-    $serverRoles = @()
-
-    # Get all the logins
-    $logins = $server.Logins
-
-    # Loop through the logins
-    foreach($login in $logins)
-    {
+        # Check if assembly is loaded
+        Load-Assembly -name 'Microsoft.SqlServer.SMO'
         
-        if(($login.Name -notlike "##*"))
+        # Check if the instance object is already initiated
+        if($server -eq $null)
         {
-            # Get all the server
-            $serverRoles = ($login.ListMembers()) -join ","
-
-            # Make the result
-            if($serverRoles.Count -gt 1)
-            {
-                $result += $login | Select `
-					Name,LoginType,CreateDate,DateLastModified,IsDisabled,`
-					@{N="ServerRoles";E=([string]::Join(",", $serverRoles))} | Sort-Object Name 
+            try{
+                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
             }
-            else
+            catch [Exception]
             {
-                $result += $login | Select `
-					Name,LoginType,CreateDate,DateLastModified,IsDisabled,`
-					@{N="ServerRoles";E={$serverRoles}} | Sort-Object Name 
+                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
             }
-
-            # Clear the array
-            $serverRoles = @()
         }
     }
 
-    return $result
+    process
+    {
 
+        # Create the result array
+        $result = @()
+
+        # Create the array for the server roles
+        $serverRoles = @()
+
+        # Get all the logins
+        $logins = $server.Logins
+
+        # Loop through the logins
+        foreach($login in $logins)
+        {
+        
+            if(($login.Name -notlike "##*"))
+            {
+                # Get all the server
+                $serverRoles = ($login.ListMembers()) -join ","
+
+                # Make the result
+                if($serverRoles.Count -gt 1)
+                {
+                    $result += $login | Select `
+					    Name,LoginType,CreateDate,DateLastModified,IsDisabled,`
+					    @{N="ServerRoles";E=([string]::Join(",", $serverRoles))} | Sort-Object Name 
+                }
+                else
+                {
+                    $result += $login | Select `
+					    Name,LoginType,CreateDate,DateLastModified,IsDisabled,`
+					    @{N="ServerRoles";E={$serverRoles}} | Sort-Object Name 
+                }
+
+                # Clear the array
+                $serverRoles = @()
+            }
+        }
+
+        return $result
+    }
 }
 
 ##################################################
