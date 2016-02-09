@@ -10,7 +10,7 @@
 RootModule = 'PSSQLLib'
 
 # Version number of this module.
-ModuleVersion = '1.3.3'
+ModuleVersion = '1.4.0'
 
 # ID used to uniquely identify this module
 GUID = '51853022-3931-4e43-936a-02739a1bb6d2'
