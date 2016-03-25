@@ -36,6 +36,9 @@
 #    Added functionality for retrieving the instance uptime
 #  v1.4.0
 #    Added structures to the functions
+#  v1.4.1
+#    Added functionality for using ports connecting to SQL Server
+#    Changed the try/catch procedures to catch more error and work more efficiently
 ################################################################################
 
 function Get-HostHarddisk
@@ -65,33 +68,26 @@ function Get-HostHarddisk
         [string]$hst = $null
     )
 
-    begin
+    try
     {
-        try
-        {
-            # Get the data
-	        $drives= Get-WmiObject -Class Win32_LogicalDisk -Computername $hst -Errorvariable errorvar | Where {$_.drivetype -eq 3}
-        }
-        catch
-        {
-            Write-Output "$hst $($_.Exception.Message)"
-        }
+        # Get the data
+	    $drives= Get-WmiObject -Class Win32_LogicalDisk -Computername $hst -Errorvariable errorvar | Where {$_.drivetype -eq 3}
+
+        # Create the result array
+        $result = @()
+
+        # Get the results
+        $result = $drives | Select -property `
+		    @{N="Disk";E={$_.DeviceID}},VolumeName, `
+		    @{N="FreeSpaceMB";E={"{0:N2}" -f ($_.Freespace/1Mb)}}, `
+		    @{N="SizeMB";E={"{0:N2}" -f ($_.Size/1Mb)}}, `
+		    @{N="PercentageUsed";E={"{0:N2}" -f (($_.Size - $_.FreeSpace) / $_.Size * 100)}}
+
+        return $result
     }
-
-    process
+    catch
     {
-            # Create the result array
-            $result = @()
-
-            # Get the results
-            $result = $drives | Select -property `
-		        @{N="Disk";E={$_.DeviceID}},VolumeName, `
-		        @{N="FreeSpaceMB";E={"{0:N2}" -f ($_.Freespace/1Mb)}}, `
-		        @{N="SizeMB";E={"{0:N2}" -f ($_.Size/1Mb)}}, `
-		        @{N="PercentageUsed";E={"{0:N2}" -f (($_.Size - $_.FreeSpace) / $_.Size * 100)}}
-
-            return $result
-        
+        Write-Output "$hst $($_.Exception.Message)"
     }
 }
 
@@ -123,21 +119,11 @@ function Get-HostHardware
         [string]$hst = $null
     )
 
-    begin
+    try
     {
-        try
-        {
-            # Get the data
-	        $computer = Get-Wmiobject -Class win32_computersystem -Computername $hst -Errorvariable errorvar
-        }
-        catch
-        {
-            Write-Output "$hst $($_.Exception.Message)"
-        }
-    }
+        # Get the data
+	    $computer = Get-Wmiobject -Class win32_computersystem -Computername $hst -Errorvariable errorvar
 
-    process
-    {
         $result = @()
 
         # Get the result
@@ -147,6 +133,10 @@ function Get-HostHardware
 
         # Return the result
         return $result
+    }
+    catch
+    {
+        Write-Output "$hst $($_.Exception.Message)"
     }
 }
 
@@ -178,21 +168,11 @@ function Get-HostOperatingSystem
         [string]$hst = $null
     )
 
-    begin
+    try
     {
-        try
-        {
-            # Get the data
-            $os = Get-WmiObject -Class win32_operatingsystem -Computername $hst -Errorvariable errorvar
-        }
-        catch
-        {
-            Write-Output "$hst $($_.Exception.Message)"
-        }
-    }
+        # Get the data
+        $os = Get-WmiObject -Class win32_operatingsystem -Computername $hst -Errorvariable errorvar
 
-    process
-    {
         $result = @()
 
         # Get the results
@@ -206,6 +186,10 @@ function Get-HostOperatingSystem
 
         #return the result
         return $result
+    }
+    catch
+    {
+        Write-Output "$hst $($_.Exception.Message)"
     }
 
 }
@@ -237,11 +221,8 @@ function Get-HostSQLServerServices
         [string]$hst = $null
     )
 
-    process
-    {
-        return Get-WmiObject win32_Service -Computer $hst | where {$_.DisplayName -match "SQL Server"} | `
-		    select SystemName, DisplayName, Name, State, Status, StartMode, StartName 
-    }
+    return Get-WmiObject win32_Service -Computer $hst | where {$_.DisplayName -match "SQL Server"} | `
+		select SystemName, DisplayName, Name, State, Status, StartMode, StartName 
 }
 
 function Get-HostSystemInformation()
@@ -270,21 +251,10 @@ function Get-HostSystemInformation()
         [string]$hst = $null
     )
 
-    begin
+    try
     {
-        try
-        {
-            $data = Get-WmiObject -class "Win32_ComputerSystem" -Namespace "root\CIMV2" -ComputerName $hst
-
-        }
-        catch
-        {
-            Write-Output "$hst $($_.Exception.Message)"
-        }
-    }
-
-    process
-    {
+        $data = Get-WmiObject -class "Win32_ComputerSystem" -Namespace "root\CIMV2" -ComputerName $hst
+            
         $result = @()
         $result = $data | Select `
             Name,Domain,Manufacturer,Model, `
@@ -293,6 +263,11 @@ function Get-HostSystemInformation()
 
 
         return $result
+
+    }
+    catch
+    {
+        Write-Output "$hst $($_.Exception.Message)"
     }
 
 }
@@ -305,7 +280,7 @@ function Get-HostUptime
     .DESCRIPTION
         The script will retrieve the boot time and local time.
         Based on the start time the uptime will be calculated.
-    .PARAMETER instance
+    .PARAMETER hst
         This is the instance that needs to be connected
     .EXAMPLE
         Get-HostUptime "SQL01"
@@ -327,20 +302,10 @@ function Get-HostUptime
         $cred = [System.Management.Automation.PSCredential]::Empty 
     )
 
-    begin
-    {
-        try 
-        { 
-            $os = Get-WmiObject win32_operatingsystem -ComputerName $hst -ErrorAction Stop -Credential $cred
-        } 
-        catch [Exception] 
-        { 
-            Write-Output "$hst $($_.Exception.Message)" 
-        }
-    }
-    
-    process
-    {
+    try 
+    { 
+        $os = Get-WmiObject win32_operatingsystem -ComputerName $hst -ErrorAction Stop -Credential $cred
+        
         $result = @()
 
         $bootTime = $os.ConvertToDateTime($os.LastBootUpTime) 
@@ -354,7 +319,14 @@ function Get-HostUptime
 
 
         return $result
+    } 
+    catch [Exception] 
+    { 
+        Write-Output "$hst $($_.Exception.Message)" 
     }
+
+    
+    
 }
 
 ##################################################
@@ -369,12 +341,18 @@ function Get-SQLAgentJobs
         like the jobtype, enabled or not, date created, last run date etc.
     .PARAMETER instance
         This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
     .EXAMPLE
         Get-SQLServerJobs "SQL01"
     .EXAMPLE
         Get-SQLServerJobs "SQL01\INST01"
     .EXAMPLE
+        Get-SQLServerJobs "SQL01\INST01" 4321
+    .EXAMPLE
         Get-SQLServerJobs -inst "SQL01\INST01"
+    .EXAMPLE
+        Get-SQLServerJobs -inst "SQL01\INST01" -port 4321
     .INPUTS
     .OUTPUTS
         System.Array
@@ -386,29 +364,19 @@ function Get-SQLAgentJobs
     (
         [Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$inst = $null
+        [string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433'
     )
 
-    begin
-    {
-        # Check if assembly is loaded
-        Load-Assembly -name 'Microsoft.SqlServer.SMO'
-        
-        # Check if the instance object is already initiated
-        if($server -eq $null)
-        {
-            try{
-                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-            }
-            catch [Exception]
-            {
-                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-            }
-        }
-    }
 
-    process
-    {
+    # Check if assembly is loaded
+    Load-Assembly -name 'Microsoft.SqlServer.SMO'
+        
+    # Create the server object and retrieve the information
+    try{
+        $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') "$inst,$port"
+
         # Get the jobs
         $server.JobServer.Jobs
 
@@ -423,6 +391,11 @@ function Get-SQLAgentJobs
         # Return the result
         return $result
     }
+    catch [Exception]
+    {
+        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+    }
+
 }
 
 function Get-SQLConfiguration
@@ -435,12 +408,18 @@ function Get-SQLConfiguration
         configuration settings. It wil return a table with the configurations.
     .PARAMETER instance
         This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
     .EXAMPLE
         Get-SQLConfiguration "SQL01"
     .EXAMPLE
         Get-SQLConfiguration "SQL01\INST01"
-	.EXAMPLE
-        Get-SQLInstance -inst "SQL01\INST01"
+    .EXAMPLE
+        Get-SQLConfiguration "SQL01\INST01" 4321
+    .EXAMPLE
+        Get-SQLConfiguration -inst "SQL01\INST01"
+    .EXAMPLE
+        Get-SQLConfiguration -inst "SQL01\INST01" -port 4321
     .INPUTS
     .OUTPUTS
         System.Array
@@ -452,29 +431,19 @@ function Get-SQLConfiguration
     (
         [Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$inst = $null
+        [string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433'
     )
-    
-    begin
-    {
-        # Check if assembly is loaded
-        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+
+    # Check if assembly is loaded
+    Load-Assembly -name 'Microsoft.SqlServer.SMO'
         
-        # Check if the instance object is already initiated
-        if($server -eq $null)
-        {
-            try{
-                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-            }
-            catch [Exception]
-            {
-                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-            }
-        }
-    }
-    
-    process
-    {
+    # Create the server object and retrieve the information
+    try{
+                
+        $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') "$inst,$port"
+
         # Define the array
         $result = @()
 
@@ -487,6 +456,12 @@ function Get-SQLConfiguration
         # Return the result
         return $result
     }
+    catch [Exception]
+    {
+        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+    }
+
+    
 }
 
 function Get-SQLDatabaseFiles
@@ -498,6 +473,8 @@ function Get-SQLDatabaseFiles
         The function return all the database files from all databases
     .PARAMETER instance
         This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
     .PARAMETER dbfilter
         This is used to return only show details on certain databases
     .EXAMPLE
@@ -505,7 +482,11 @@ function Get-SQLDatabaseFiles
     .EXAMPLE
         Get-Get-SQLDatabaseFiles "SQL01\INST01"
     .EXAMPLE
+        Get-Get-SQLDatabaseFiles "SQL01\INST01" 4321
+    .EXAMPLE
         Get-Get-SQLDatabaseFiles -inst "SQL01\INST01"
+    .EXAMPLE
+        Get-Get-SQLDatabaseFiles -inst "SQL01\INST01" -port 4321
     .INPUTS
     .OUTPUTS
         System.Array
@@ -517,29 +498,18 @@ function Get-SQLDatabaseFiles
     (
         [Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$inst = $null
+        [string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433'
     )
 
-    begin
-    {
-        # Check if assembly is loaded
-        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+    # Check if assembly is loaded
+    Load-Assembly -name 'Microsoft.SqlServer.SMO'
         
-        # Check if the instance object is already initiated
-        if($server -eq $null)
-        {
-            try{
-                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-            }
-            catch [Exception]
-            {
-                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-            }
-        }
-    }
+    # Create the server object and retrieve the information
+    try{
+        $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') "$inst,$port"
 
-    process
-    {
         # Define the array
         $dataFiles = @()
         $logFiles = @()
@@ -594,6 +564,12 @@ function Get-SQLDatabaseFiles
 
         return $result
     }
+    catch [Exception]
+    {
+        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+    }
+
+    
 }
 
 function Get-SQLDatabasePrivileges
@@ -605,12 +581,18 @@ function Get-SQLDatabasePrivileges
         The function return all the database users with their roles in the database
     .PARAMETER instance
         This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
     .EXAMPLE
         Get-SQLDatabasePrivileges "SQL01"
     .EXAMPLE
         Get-SQLDatabasePrivileges "SQL01\INST01"
     .EXAMPLE
+        Get-SQLDatabasePrivileges "SQL01\INST01" 4321
+    .EXAMPLE
         Get-SQLDatabasePrivileges -inst "SQL01\INST01"
+    .EXAMPLE
+        Get-SQLDatabasePrivileges -inst "SQL01\INST01" -port 4321
     .INPUTS
     .OUTPUTS
         System.Array
@@ -622,29 +604,18 @@ function Get-SQLDatabasePrivileges
     (
         [Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$inst = $null
+        [string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433'
     )
     
-    begin
-    {
-        # Check if assembly is loaded
-        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+    # Check if assembly is loaded
+    Load-Assembly -name 'Microsoft.SqlServer.SMO'
         
-        # Check if the instance object is already initiated
-        if($server -eq $null)
-        {
-            try{
-                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-            }
-            catch [Exception]
-            {
-                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-            }
-        }
-    }
+    # Create the server object and retrieve the information
+    try{
+        $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') "$inst,$port"
 
-    process
-    {
         # Create the result array
         $result = @()
 
@@ -703,6 +674,10 @@ function Get-SQLDatabasePrivileges
 
         return $result
     }
+    catch [Exception]
+    {
+        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+    }
 }
 
 function Get-SQLDatabases
@@ -715,12 +690,18 @@ function Get-SQLDatabases
         the data in the form of a table.
     .PARAMETER instance
         This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
     .EXAMPLE
         Get-Get-SQLDatabases "SQL01"
     .EXAMPLE
         Get-Get-SQLDatabases "SQL01\INST01"
     .EXAMPLE
+        Get-Get-SQLDatabases "SQL01\INST01" 4321
+    .EXAMPLE
         Get-Get-SQLDatabases -inst "SQL01\INST01"
+    .EXAMPLE
+        Get-Get-SQLDatabases -inst "SQL01\INST01" -port 4321
     .INPUTS
     .OUTPUTS
         System.Array
@@ -732,29 +713,18 @@ function Get-SQLDatabases
     (
         [Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$inst = $null
+        [string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433'
     )
 
-    begin
-    {
-        # Check if assembly is loaded
-        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+    # Check if assembly is loaded
+    Load-Assembly -name 'Microsoft.SqlServer.SMO'
         
-        # Check if the instance object is already initiated
-        if($server -eq $null)
-        {
-            try{
-                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-            }
-            catch [Exception]
-            {
-                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-            }
-        }
-    }
+    # Create the server object and retrieve the information
+    try{
+        $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') "$inst,$port"
 
-    process
-    {
         # Define the array
         $result = @()
         # Get all the databases
@@ -776,6 +746,12 @@ function Get-SQLDatabases
         # Return the result
         return $result
     }
+    catch [Exception]
+    {
+        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+    }
+
+    
 }
 
 function Get-SQLDatabaseUsers
@@ -787,6 +763,8 @@ function Get-SQLDatabaseUsers
         The function returns all the database users present
     .PARAMETER instance
         This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
     .PARAMETER dbfilter
         This is used to return only show details on certain databases
     .EXAMPLE
@@ -794,9 +772,13 @@ function Get-SQLDatabaseUsers
     .EXAMPLE
         Get-SQLDatabaseUsers "SQL01\INST01"
     .EXAMPLE
+        Get-SQLDatabaseUsers "SQL01\INST01" 4321
+    .EXAMPLE
         Get-SQLDatabaseUsers -inst "SQL01\INST01"
     .EXAMPLE
-        Get-SQLDatabaseUsers -inst "SQL01\INST01" -dbfilter "tempdb,msdb"
+        Get-SQLDatabaseUsers -inst "SQL01\INST01" -port 4321
+    .EXAMPLE
+        Get-SQLDatabaseUsers -inst "SQL01\INST01" -port 4321 -dbfilter "tempdb,msdb"
     .INPUTS
     .OUTPUTS
         System.Array
@@ -808,32 +790,21 @@ function Get-SQLDatabaseUsers
     (
 		[Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$inst = $null
-		, [Parameter(Mandatory = $false, Position=2)]
+        [string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433'
+		, [Parameter(Mandatory = $false, Position=3)]
         [ValidateNotNullOrEmpty()]
         [string]$dbfilter = $null
     )
     
-    begin
-    {
-        # Check if assembly is loaded
-        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+    # Check if assembly is loaded
+    Load-Assembly -name 'Microsoft.SqlServer.SMO'
         
-        # Check if the instance object is already initiated
-        if($server -eq $null)
-        {
-            try{
-                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-            }
-            catch [Exception]
-            {
-                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-            }
-        }
-    }
+    # Create the server object and retrieve the information
+    try{
+        $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') "$inst,$port"
 
-    process
-    {
         # Create the result array
         $result = @()
 
@@ -857,6 +828,11 @@ function Get-SQLDatabaseUsers
         # Return the results
         return $result 
     }
+    catch [Exception]
+    {
+        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+    }
+    
 }
 
 function Get-SQLDiskLatencies
@@ -869,12 +845,18 @@ function Get-SQLDiskLatencies
         the read and write latencies which SQL Server collected.
     .PARAMETER instance
         This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
     .EXAMPLE
         Get-SQLDiskLatencies "SQL01"
     .EXAMPLE
         Get-SQLDiskLatencies "SQL01\INST01"
+    .EXAMPLE
+        Get-SQLDiskLatencies "SQL01\INST01" 4321
 	.EXAMPLE
         Get-SQLDiskLatencies -inst "SQL01\INST01"
+    .EXAMPLE
+        Get-SQLDiskLatencies -inst "SQL01\INST01" port 4321
     .INPUTS
     .OUTPUTS
         System.Array
@@ -886,55 +868,54 @@ function Get-SQLDiskLatencies
     (
         [Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$inst = $null
+        [string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433'
     )
 
-    process
-    {
-        $query = '
-            SELECT 
-                DB_NAME(vfs.database_id) AS [Database],
-                LEFT (mf.physical_name, 2) AS [Drive],
-                mf.physical_name AS [PhysicalFileName],
-                --virtual file latency
-                CASE WHEN num_of_reads = 0
-                    THEN 0 ELSE (io_stall_read_ms / num_of_reads) END AS [ReadLatency],
-                CASE WHEN num_of_writes = 0 
-                    THEN 0 ELSE (io_stall_write_ms / num_of_writes) END AS [WriteLatency],
-                CASE WHEN (num_of_reads = 0 AND num_of_writes = 0)
-                    THEN 0 ELSE (io_stall / (num_of_reads + num_of_writes)) END AS [Latency],
-                --avg bytes per IOP
-                CASE WHEN num_of_reads = 0 
-                    THEN 0 ELSE (num_of_bytes_read / num_of_reads) END AS [AvgBPerRead],
-                CASE WHEN io_stall_write_ms = 0 
-                    THEN 0 ELSE (num_of_bytes_written / num_of_writes) END AS [AvgBPerWrite],
-                CASE WHEN (num_of_reads = 0 AND num_of_writes = 0)
-                    THEN 0 ELSE ((num_of_bytes_read + num_of_bytes_written) / 
-                        (num_of_reads + num_of_writes)) END AS [AvgBPerTransfer],    
-                num_of_reads AS [CountReads],
-                num_of_writes AS [CountWrites],
-                (num_of_reads+num_of_writes) AS [CountTotalIO],
-                CONVERT(NUMERIC(10,2),(CAST(num_of_reads AS FLOAT)/ CAST((num_of_reads+num_of_writes) AS FLOAT) * 100)) AS [PercentageRead],
-                CONVERT(NUMERIC(10,2),(CAST(num_of_writes AS FLOAT)/ CAST((num_of_reads+num_of_writes) AS FLOAT) * 100)) AS [PercentageWrite]
-            FROM sys.dm_io_virtual_file_stats (NULL,NULL) AS vfs
-            JOIN sys.master_files AS mf
-                ON vfs.database_id = mf.database_id
-                AND vfs.file_id = mf.file_id
-            ORDER BY DB_NAME(vfs.database_id);
-            GO
-        '
+    $query = '
+        SELECT 
+            DB_NAME(vfs.database_id) AS [Database],
+            LEFT (mf.physical_name, 2) AS [Drive],
+            mf.physical_name AS [PhysicalFileName],
+            --virtual file latency
+            CASE WHEN num_of_reads = 0
+                THEN 0 ELSE (io_stall_read_ms / num_of_reads) END AS [ReadLatency],
+            CASE WHEN num_of_writes = 0 
+                THEN 0 ELSE (io_stall_write_ms / num_of_writes) END AS [WriteLatency],
+            CASE WHEN (num_of_reads = 0 AND num_of_writes = 0)
+                THEN 0 ELSE (io_stall / (num_of_reads + num_of_writes)) END AS [Latency],
+            --avg bytes per IOP
+            CASE WHEN num_of_reads = 0 
+                THEN 0 ELSE (num_of_bytes_read / num_of_reads) END AS [AvgBPerRead],
+            CASE WHEN io_stall_write_ms = 0 
+                THEN 0 ELSE (num_of_bytes_written / num_of_writes) END AS [AvgBPerWrite],
+            CASE WHEN (num_of_reads = 0 AND num_of_writes = 0)
+                THEN 0 ELSE ((num_of_bytes_read + num_of_bytes_written) / 
+                    (num_of_reads + num_of_writes)) END AS [AvgBPerTransfer],    
+            num_of_reads AS [CountReads],
+            num_of_writes AS [CountWrites],
+            (num_of_reads+num_of_writes) AS [CountTotalIO],
+            CONVERT(NUMERIC(10,2),(CAST(num_of_reads AS FLOAT)/ CAST((num_of_reads+num_of_writes) AS FLOAT) * 100)) AS [PercentageRead],
+            CONVERT(NUMERIC(10,2),(CAST(num_of_writes AS FLOAT)/ CAST((num_of_reads+num_of_writes) AS FLOAT) * 100)) AS [PercentageWrite]
+        FROM sys.dm_io_virtual_file_stats (NULL,NULL) AS vfs
+        JOIN sys.master_files AS mf
+            ON vfs.database_id = mf.database_id
+            AND vfs.file_id = mf.file_id
+        ORDER BY DB_NAME(vfs.database_id);
+        GO
+    '
 
-        try{
-            $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
-        }
-        catch [Exception]
-        {
-            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-        }
+    try{
+        $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
+    }
+    catch [Exception]
+    {
+        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+    }
         
 
-        return $result
-    }
+    return $result
 }
 
 function Get-SQLInstanceSettings
@@ -947,12 +928,18 @@ function Get-SQLInstanceSettings
         the data in the form of a table.
     .PARAMETER instance
         This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
     .EXAMPLE
         Get-SQLInstance "SQL01"
     .EXAMPLE
         Get-SQLInstance "SQL01\INST01"
     .EXAMPLE
+        Get-SQLInstance "SQL01\INST01" 4321
+    .EXAMPLE
         Get-SQLInstance -inst "SQL01\INST01"
+    .EXAMPLE
+        Get-SQLInstance -inst "SQL01\INST01" -port 4321
     .INPUTS
     .OUTPUTS
         System.Array
@@ -964,29 +951,18 @@ function Get-SQLInstanceSettings
     (
         [Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$inst = $null
+        [string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433'
     )
-    
-    begin
-    {
-        # Check if assembly is loaded
-        Load-Assembly -name 'Microsoft.SqlServer.SMO'
-        
-        # Check if the instance object is already initiated
-        if($server -eq $null)
-        {
-            try{
-                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-            }
-            catch [Exception]
-            {
-                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-            }
-        }
-    }
 
-    process
-    {
+    # Check if assembly is loaded
+    Load-Assembly -name 'Microsoft.SqlServer.SMO'
+        
+    # Create the server object and retrieve the information
+    try{
+        $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') "$inst,$port"
+
         # Define the array
         $result = @()
 
@@ -1007,6 +983,10 @@ function Get-SQLInstanceSettings
         # Return the result
         return $result
     }
+    catch [Exception]
+    {
+        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+    }
 }
 
 function Get-SQLInstanceUptime
@@ -1020,12 +1000,18 @@ function Get-SQLInstanceUptime
         This function can be used from SQL Server 2008 or later
     .PARAMETER instance
         This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
     .EXAMPLE
         Get-SQLInstanceUptime "SQL01"
     .EXAMPLE
         Get-SQLInstanceUptime "SQL01\INST01"
+    .EXAMPLE
+        Get-SQLInstanceUptime "SQL01\INST01" 4321
 	.EXAMPLE
         Get-SQLInstanceUptime -inst "SQL01\INST01"
+	.EXAMPLE
+        Get-SQLInstanceUptime -inst "SQL01\INST01" -port 4321
     .INPUTS
     .OUTPUTS
         System.Array
@@ -1037,39 +1023,38 @@ function Get-SQLInstanceUptime
     (
         [Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$inst = $null
+        [string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433'
     )
 
-    process
-    {
-        $query = "
-            DECLARE	@start_time DATETIME ,
-	            @end_time DATETIME ,
-	            @difference DATETIME;
+    $query = "
+        DECLARE	@start_time DATETIME ,
+	        @end_time DATETIME ,
+	        @difference DATETIME;
 
-            SELECT	@start_time = sqlserver_start_time ,
-		            @end_time = GETDATE() ,
-		            @difference = @end_time - @start_time
-            FROM	sys.dm_os_sys_info;
+        SELECT	@start_time = sqlserver_start_time ,
+		        @end_time = GETDATE() ,
+		        @difference = @end_time - @start_time
+        FROM	sys.dm_os_sys_info;
 
-            SELECT	@start_time AS [start_time] ,
-		            CONVERT(VARCHAR(10), DATEPART(DAY, @difference) - 1) + ' Day(s) '
-		            + RIGHT(CONVERT(VARCHAR(10), 100 + DATEPART(HOUR, @difference)), 2)
-		            + ':' + RIGHT(CONVERT(VARCHAR(10), 100 + DATEPART(MINUTE, @difference)),
-					              2) + ':' + RIGHT(CONVERT(VARCHAR(10), 100
-									               + DATEPART(SECOND, @difference)), 2) AS [uptime]
-        "
+        SELECT	@start_time AS [start_time] ,
+		        CONVERT(VARCHAR(10), DATEPART(DAY, @difference) - 1) + ' Day(s) '
+		        + RIGHT(CONVERT(VARCHAR(10), 100 + DATEPART(HOUR, @difference)), 2)
+		        + ':' + RIGHT(CONVERT(VARCHAR(10), 100 + DATEPART(MINUTE, @difference)),
+					            2) + ':' + RIGHT(CONVERT(VARCHAR(10), 100
+									            + DATEPART(SECOND, @difference)), 2) AS [uptime]
+    "
 
-        try{
-            $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
-        }
-        catch [Exception]
-        {
-            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-        }
-
-        return $result
+    try{
+        $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
     }
+    catch [Exception]
+    {
+        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+    }
+
+    return $result
 }
 
 function Get-SQLServerBackups
@@ -1092,12 +1077,18 @@ function Get-SQLServerBackups
             - L: Log backup
     .PARAMETER instance
         This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
     .EXAMPLE
         Get-SQLServerBackups "SQL01"
     .EXAMPLE
         Get-SQLServerBackups "SQL01\INST01"
+    .EXAMPLE
+        Get-SQLServerBackups "SQL01\INST01" 4321
 	.EXAMPLE
         Get-SQLServerBackups -inst "SQL01\INST01"
+    .EXAMPLE
+        Get-SQLServerBackups -inst "SQL01\INST01" -port 4321
     .INPUTS
     .OUTPUTS
         System.Array
@@ -1109,91 +1100,87 @@ function Get-SQLServerBackups
     (
         [Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$inst = $null
-        , [Parameter(Mandatory = $false, Position=2)]
-        [int]$days = 7
+        [string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433'
         , [Parameter(Mandatory = $false, Position=3)]
-        [string]$databaseFilter = $null
+        [int]$days = 7
         , [Parameter(Mandatory = $false, Position=4)]
+        [string]$databaseFilter = $null
+        , [Parameter(Mandatory = $false, Position=5)]
         [string]$backupTypeFilter = $null
         
     )
     
-    begin
-    {
-        # Setup the query
-        $query = " 
-            SELECT 
-	            '$inst' AS [server_name],
-	            bs.database_name AS [database_name], 
-	            bs.backup_start_date AS [start_date], 
-	            bs.backup_finish_date AS [finish_date],
-	            DATEDIFF(mi, bs.backup_start_date, bs.backup_finish_date) AS [duration],
-	            bs.expiration_date [experation_date],
-	            CASE bs.type 
-		            WHEN 'D' THEN 'Full' 
-		            WHEN 'I' THEN 'Differential'
-		            WHEN 'L' THEN 'Log' 
-	            END AS [backup_type], 
-	            CAST((bs.backup_size / 1024/ 1024) AS INT) AS [size_mb], 
-	            bmf.logical_device_name AS [logical_device_name], 
-	            bmf.physical_device_name AS [physical_device_name],  
-	            bs.name AS [backup_set],
-	            bs.description AS [description]
-            FROM
-	            msdb.dbo.backupmediafamily bmf
-            INNER JOIN msdb.dbo.backupset bs
-	            ON bmf.media_set_id = bs.media_set_id 
-            WHERE
-	            bs.backup_start_date >= DATEADD(d, -$days, GETDATE()) 
-        "
+    # Setup the query
+    $query = " 
+        SELECT 
+	        '$inst' AS [server_name],
+	        bs.database_name AS [database_name], 
+	        bs.backup_start_date AS [start_date], 
+	        bs.backup_finish_date AS [finish_date],
+	        DATEDIFF(mi, bs.backup_start_date, bs.backup_finish_date) AS [duration],
+	        bs.expiration_date [experation_date],
+	        CASE bs.type 
+		        WHEN 'D' THEN 'Full' 
+		        WHEN 'I' THEN 'Differential'
+		        WHEN 'L' THEN 'Log' 
+	        END AS [backup_type], 
+	        CAST((bs.backup_size / 1024/ 1024) AS INT) AS [size_mb], 
+	        bmf.logical_device_name AS [logical_device_name], 
+	        bmf.physical_device_name AS [physical_device_name],  
+	        bs.name AS [backup_set],
+	        bs.description AS [description]
+        FROM
+	        msdb.dbo.backupmediafamily bmf
+        INNER JOIN msdb.dbo.backupset bs
+	        ON bmf.media_set_id = bs.media_set_id 
+        WHERE
+	        bs.backup_start_date >= DATEADD(d, -$days, GETDATE()) 
+    "
     
-        if($databaseFilter.Length -ge 1) 
-        {
-            if($databaseFilter.Contains(","))
-            {
-                $databaseFilter = $databaseFilter.Replace(" ", "")
-                $databaseFilter = $databaseFilter.Replace(",", "','")
-                $databaseFilter = $databaseFilter.Insert(0, "'").Insert(($databaseFilter.Length + 1), "'")
-
-                $query += "AND bs.database_name IN ($databaseFilter) "
-            }
-            else
-            {
-                $query += "AND bs.database_name = '$databaseFilter' "
-            }
-        }
-
-        if($backupTypeFilter.Length -ge 1)
-        {
-            if($backupTypeFilter.Contains(","))
-            {
-                $backupTypeFilter = $backupTypeFilter.Replace(" ", "").ToUpper()
-                $backupTypeFilter = $backupTypeFilter.Replace(",", "','")
-                $backupTypeFilter = $backupTypeFilter.Insert(0, "'").Insert(($backupTypeFilter.Length + 1), "'")
-
-                $query += "AND bs.type IN ($backupTypeFilter) "
-            }
-            else
-            {
-                $backupTypeFilter = $backupTypeFilter.ToUpper()
-                $query += "AND bs.type = '$backupTypeFilter' "
-            }
-        }
-    }
-
-    process
+    if($databaseFilter.Length -ge 1) 
     {
-        try{
-            $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
-        }
-        catch [Exception]
+        if($databaseFilter.Contains(","))
         {
-            Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-        }
+            $databaseFilter = $databaseFilter.Replace(" ", "")
+            $databaseFilter = $databaseFilter.Replace(",", "','")
+            $databaseFilter = $databaseFilter.Insert(0, "'").Insert(($databaseFilter.Length + 1), "'")
 
-        return $result
+            $query += "AND bs.database_name IN ($databaseFilter) "
+        }
+        else
+        {
+            $query += "AND bs.database_name = '$databaseFilter' "
+        }
     }
+
+    if($backupTypeFilter.Length -ge 1)
+    {
+        if($backupTypeFilter.Contains(","))
+        {
+            $backupTypeFilter = $backupTypeFilter.Replace(" ", "").ToUpper()
+            $backupTypeFilter = $backupTypeFilter.Replace(",", "','")
+            $backupTypeFilter = $backupTypeFilter.Insert(0, "'").Insert(($backupTypeFilter.Length + 1), "'")
+
+            $query += "AND bs.type IN ($backupTypeFilter) "
+        }
+        else
+        {
+            $backupTypeFilter = $backupTypeFilter.ToUpper()
+            $query += "AND bs.type = '$backupTypeFilter' "
+        }
+    }
+
+    try{
+        $result = Invoke-Sqlcmd -ServerInstance $inst -Query $query
+    }
+    catch [Exception]
+    {
+        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+    }
+
+    return $result
 }
 
 function Get-SQLServerPrivileges
@@ -1206,12 +1193,18 @@ function Get-SQLServerPrivileges
         and check whether they are member of a server role.
     .PARAMETER  instance
         This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
     .EXAMPLE
         Get-SQLServerPrivileges "SQL01"
     .EXAMPLE
         Get-SQLServerPrivileges "SQL01\INST01"
     .EXAMPLE
+        Get-SQLServerPrivileges "SQL01\INST01" 4321
+    .EXAMPLE
         Get-SQLServerPrivileges -inst "SQL01\INST01"
+    .EXAMPLE
+        Get-SQLServerPrivileges -inst "SQL01\INST01" -port 4321
     .INPUTS
     .OUTPUTS
         System.Array
@@ -1223,29 +1216,17 @@ function Get-SQLServerPrivileges
     (
         [Parameter(Mandatory = $true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$inst = $null
+        [string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433'
     )
     
-    begin
-    {
-        # Check if assembly is loaded
-        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+    # Check if assembly is loaded
+    Load-Assembly -name 'Microsoft.SqlServer.SMO'
         
-        # Check if the instance object is already initiated
-        if($server -eq $null)
-        {
-            try{
-                $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') $inst
-            }
-            catch [Exception]
-            {
-                Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
-            }
-        }
-    }
-
-    process
-    {
+    # Create the server object and retrieve the information
+    try{
+        $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') "$inst,$port"
 
         # Create the result array
         $result = @()
@@ -1286,6 +1267,10 @@ function Get-SQLServerPrivileges
 
         return $result
     }
+    catch [Exception]
+    {
+        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+    }  
 }
 
 ##################################################
