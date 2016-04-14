@@ -39,6 +39,9 @@
 #  v1.4.1
 #    Added functionality for using ports connecting to SQL Server
 #    Changed the try/catch procedures to catch more error and work more efficiently
+#  v1.5
+#    Added functionality to export database objects to .sql script files
+#    Changed the error messages in the functions to be more descriptive
 ################################################################################
 
 function Get-HostHarddisk
@@ -87,7 +90,11 @@ function Get-HostHarddisk
     }
     catch
     {
-        Write-Output "$hst $($_.Exception.Message)"
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 }
 
@@ -136,7 +143,11 @@ function Get-HostHardware
     }
     catch
     {
-        Write-Output "$hst $($_.Exception.Message)"
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 }
 
@@ -189,7 +200,11 @@ function Get-HostOperatingSystem
     }
     catch
     {
-        Write-Output "$hst $($_.Exception.Message)"
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 
 }
@@ -221,8 +236,19 @@ function Get-HostSQLServerServices
         [string]$hst = $null
     )
 
-    return Get-WmiObject win32_Service -Computer $hst | where {$_.DisplayName -match "SQL Server"} | `
-		select SystemName, DisplayName, Name, State, Status, StartMode, StartName 
+    try
+    {
+        return Get-WmiObject win32_Service -Computer $hst | where {$_.DisplayName -match "SQL Server"} | `
+		    select SystemName, DisplayName, Name, State, Status, StartMode, StartName 
+    }
+    catch
+    {
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
+    }
 }
 
 function Get-HostSystemInformation()
@@ -267,7 +293,11 @@ function Get-HostSystemInformation()
     }
     catch
     {
-        Write-Output "$hst $($_.Exception.Message)"
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 
 }
@@ -322,11 +352,13 @@ function Get-HostUptime
     } 
     catch [Exception] 
     { 
-        Write-Output "$hst $($_.Exception.Message)" 
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 
-    
-    
 }
 
 ##################################################
@@ -393,7 +425,11 @@ function Get-SQLAgentJobs
     }
     catch [Exception]
     {
-        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 
 }
@@ -458,7 +494,11 @@ function Get-SQLConfiguration
     }
     catch [Exception]
     {
-        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 
     
@@ -566,7 +606,11 @@ function Get-SQLDatabaseFiles
     }
     catch [Exception]
     {
-        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 
     
@@ -676,7 +720,11 @@ function Get-SQLDatabasePrivileges
     }
     catch [Exception]
     {
-        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 }
 
@@ -748,7 +796,11 @@ function Get-SQLDatabases
     }
     catch [Exception]
     {
-        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 
     
@@ -830,7 +882,11 @@ function Get-SQLDatabaseUsers
     }
     catch [Exception]
     {
-        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
     
 }
@@ -911,7 +967,11 @@ function Get-SQLDiskLatencies
     }
     catch [Exception]
     {
-        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+       $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
         
 
@@ -985,7 +1045,11 @@ function Get-SQLInstanceSettings
     }
     catch [Exception]
     {
-        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 }
 
@@ -1051,7 +1115,11 @@ function Get-SQLInstanceUptime
     }
     catch [Exception]
     {
-        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 
     return $result
@@ -1177,7 +1245,11 @@ function Get-SQLServerBackups
     }
     catch [Exception]
     {
-        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }
 
     return $result
@@ -1269,8 +1341,243 @@ function Get-SQLServerPrivileges
     }
     catch [Exception]
     {
-        Write-Host "$_.Exception.GetType().FullName, $_.Exception.Message" -ForegroundColor Red
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
     }  
+}
+
+
+function Export-DatabaseObject
+{
+    <# 
+    .SYNOPSIS
+        Generates export files of database objects
+    .DESCRIPTION
+        This function will return generate an export file of database objects to a .sql file.
+        This includes tables, views, stored procedures and user defined functions.
+    .PARAMETER  instance
+        This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
+    .PARAMETER dblist
+        List with databases to export. Is comma seperated.
+    .PARAMETER includetimestamp
+        Boolean to include a timestamp directory to export to
+    .PARAMETER includetables
+        Boolean to include or exclude tables. Can be value $false/$true or 0/1.
+    .PARAMETER includeviews
+        Boolean to include or exclude views. Can be value $false/$true or 0/1.
+    .PARAMETER includesp
+        Boolean to include or exclude stored procedures. Can be value $false/$true or 0/1.
+    .PARAMETER includeudf
+        Boolean to include or exclude user defined functions. Can be value $false/$true or 0/1.
+    .EXAMPLE
+        Export-DatabaseObjects "SQL01" -path 'C:\Temp\export'
+    .EXAMPLE
+        Export-DatabaseObjects -inst "SQL01\INST01" -path 'C:\Temp\export'
+    .EXAMPLE
+        Export-DatabaseObjects -inst "SQL01\INST01" 4321 -path 'C:\Temp\export'
+    .EXAMPLE
+        Export-DatabaseObjects -inst "SQL01\INST01" -dblist 'db1,db2' -path 'C:\Temp\export'
+    .EXAMPLE
+        Export-DatabaseObjects -inst "SQL01\INST01" -includeudf $false -path 'C:\Temp\export'
+    .INPUTS
+    .OUTPUTS
+        System.Array
+    .NOTES
+    .LINK
+    #>
+    param
+    (
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()][string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433',
+        [Parameter(Mandatory = $true, Position=3)]
+        [ValidateNotNullOrEmpty()][string]$path = $null,
+        [Parameter(Mandatory = $false, Position=4)]
+        [string]$dblist = 'ALL',
+        [Parameter(Mandatory = $false, Position=5)]
+        [Alias("timestamp")]
+        [bool]$includetimestamp = $true,
+        [Parameter(Mandatory = $false, Position=6)]
+        [Alias("inct")]
+        [bool]$includetables = $true,
+        [Parameter(Mandatory = $false, Position=7)]
+        [Alias("incv")]
+        [bool]$includeviews = $true,
+        [Parameter(Mandatory = $false, Position=8)]
+        [Alias("incsp")]
+        [bool]$includesp = $true,
+        [Parameter(Mandatory = $false, Position=9)]
+        [Alias("incu")]
+        [bool]$includeudf = $true
+        
+    )
+
+    # Check if assembly is loaded
+    Load-Assembly -name 'Microsoft.SqlServer.SMO'
+
+    # Create the server object and retrieve the information
+    try{
+        # Make a connection to the database
+        $server = New-Object ('Microsoft.SqlServer.Management.Smo.Server') "$inst,$port"
+
+        # Set the destination
+        $destination = "$path\$inst\"
+
+        if((Test-Path $destination) -eq $false)
+        {
+            # Create the directory
+            New-Item -ItemType Directory -Path "$destination" | Out-Null
+        }
+
+        $databases = @{}
+
+        # Check if a selective list must be used
+        if($dblist -eq 'ALL')
+        {
+            # Get the user databases, the system databases are excluded
+            $databases = $server.Databases | Select Name | where {$_.Name -notmatch 'master|model|msdb|tempdb' }
+        }
+        else
+        {
+            $databases = @()
+
+            #clean up the data
+            $dblist = $dblist.Replace(' ', '')
+
+            # Split the string
+            $values = $dblist.Split(',') 
+
+            foreach($value in $values)
+            {
+                $db = New-Object psobject
+                $db | Add-Member -membertype noteproperty -name "Name" -Value $value
+                $databases += $db
+            }
+
+        }
+
+        # Check if there are any databases
+        if($databases.Count -ge 1)
+        {
+            # Loop through
+            foreach($database in $databases)
+            {
+                Write-Host "Starting Database Export: " $database.Name -ForegroundColor Green
+
+                # Check if timestamp is needed
+                if($includetimestamp)
+                {
+                    # Create a timestamp
+                    $timestamp = Get-Date -Format yyyyMMddHHmmss
+                    # Set the desitnation
+                    $dbDestination = "$destination\" + $database.Name + "\$timestamp"
+                }
+                else
+                {
+                    # Set the desitnation
+                    $dbDestination = "$destination\" + $database.Name 
+                }
+
+                # Create the variable for holding all the database objects
+                $objects = $null
+
+                # Check if the tables need to be included
+                if($includetables)
+                {
+                    Write-Host "Retrieving Tables"  -ForegroundColor Green
+
+                    # Get the tables
+                    $objects += $server.Databases[$database.Name].Tables | where {!($_.IsSystemObject)}
+                }
+
+                # Check if the views need to be included
+                if($includeviews)
+                {
+                    Write-Host "Retrieving Views" -ForegroundColor Green
+
+                    # Get the views
+                    $objects += $server.Databases[$database.Name].Views | where {!($_.IsSystemObject)}
+                }
+
+                # Check if the stored procedures need to be included
+                if($includesp)
+                {
+                    Write-Host "Retrieving Stored Procedures" -ForegroundColor Green
+
+                    # Get the stored procedures
+                    $objects += $server.Databases[$database.Name].StoredProcedures | where {!($_.IsSystemObject)}
+                }
+
+                # Check if the user defined functions need to be included
+                if($includeudf)
+                {
+                    Write-Host "Retrieving User Defined Functions" -ForegroundColor Green
+
+                    # Get the stored procedures
+                    $objects += $server.Databases[$database.Name].UserDefinedFunctions | where {!($_.IsSystemObject)}
+                }
+
+                Write-Host $objects.Length "objects found to export." -ForegroundColor Green 
+
+                # Check if there any objects to export
+                if($objects.Length -ge 1)
+                {
+                    # Create the scripter object
+                    $scripter = New-Object ("Microsoft.SqlServer.Management.Smo.Scripter") $server #"$inst,$port"
+
+                    # Set general options
+                    $scripter.Options.AppendToFile = $false
+                    $scripter.Options.AllowSystemObjects = $false
+                    $scripter.Options.ClusteredIndexes = $true
+                    $scripter.Options.DriAll = $true
+                    $scripter.Options.ScriptDrops = $false
+                    $scripter.Options.IncludeHeaders = $true
+                    $scripter.Options.ToFileOnly = $true
+                    $scripter.Options.Indexes = $true
+                    $scripter.Options.WithDependencies = $false
+
+                    foreach($item in $objects )
+                    {
+                        # Get the type of object
+                        $typeDir = $item.GetType().Name
+
+                        # Check if the directory for the item type exists
+                        if((Test-Path "$dbDestination\$typeDir") -eq $false)
+                        {
+                            New-Item -ItemType Directory -Name "$typeDir" -Path "$dbDestination" | Out-Null
+                        }
+
+                        #Setup the output file for the item
+                        $filename = $item -replace "\[|\]"
+                        $scripter.Options.FileName = "$dbDestination\$typeDir\$filename.sql"
+
+                        # Script out the object 
+                        Write-Host "Scripting out $typeDir $item"
+                        $scripter.Script($item)
+
+                    }
+                }
+            }
+        }
+        else
+        {
+            Write-Host "No databases found." -ForegroundColor Magenta
+        }
+    }
+    catch [Exception]
+    {
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
+    }
 }
 
 ##################################################
@@ -1328,3 +1635,5 @@ Export-ModuleMember -Function Get-SQLInstanceSettings
 Export-ModuleMember -Function Get-SQLInstanceUptime
 Export-ModuleMember -Function Get-SQLServerBackups
 Export-ModuleMember -Function Get-SQLServerPrivileges
+
+Export-ModuleMember -Function Export-DatabaseObject
