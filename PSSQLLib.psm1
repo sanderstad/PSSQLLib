@@ -1616,11 +1616,11 @@ function Export-SQLServerObject
     .EXAMPLE
         Export-SQLServerObject "SQL01" -path 'C:\Temp\export'
     .EXAMPLE
-        Export-DatabaseObject -inst "SQL01\INST01" -path 'C:\Temp\export'
+        Export-SQLServerObject -inst "SQL01\INST01" -path 'C:\Temp\export'
     .EXAMPLE
-        Export-DatabaseObject -inst "SQL01\INST01" 4321 -path 'C:\Temp\export'
+        Export-SQLServerObject -inst "SQL01\INST01" 4321 -path 'C:\Temp\export'
     .EXAMPLE
-        Export-DatabaseObject -inst "SQL01\INST01" -includemail $false -path 'C:\Temp\export'
+        Export-SQLServerObject -inst "SQL01\INST01" -includemail $false -path 'C:\Temp\export'
     .INPUTS
     .OUTPUTS
         Script files
