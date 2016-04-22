@@ -1,7 +1,7 @@
 ################################################################################
 #  Written by Sander Stad, SQLStad.nl
 # 
-#  (c) 2015, SQLStad.nl. All rights reserved.
+#  (c) 2016, SQLStad.nl. All rights reserved.
 # 
 #  For more scripts and sample code, check out http://www.SQLStad.nl
 # 
@@ -42,6 +42,8 @@
 #  v1.5
 #    Added functionality to export database objects to .sql script files
 #    Changed the error messages in the functions to be more descriptive
+#  v1.5.1
+#    Added functionality to export SQL Server objects to .sql script files
 ################################################################################
 
 function Get-HostHarddisk
@@ -1362,6 +1364,8 @@ function Export-DatabaseObject
         This is the instance that needs to be connected
     .PARAMETER port
         This is the port of the instance that needs to be used
+    .PARAMETER path
+        Path to export to
     .PARAMETER dblist
         List with databases to export. Is comma seperated.
     .PARAMETER includetimestamp
@@ -1375,18 +1379,18 @@ function Export-DatabaseObject
     .PARAMETER includeudf
         Boolean to include or exclude user defined functions. Can be value $false/$true or 0/1.
     .EXAMPLE
-        Export-DatabaseObjects "SQL01" -path 'C:\Temp\export'
+        Export-DatabaseObject "SQL01" -path 'C:\Temp\export'
     .EXAMPLE
-        Export-DatabaseObjects -inst "SQL01\INST01" -path 'C:\Temp\export'
+        Export-DatabaseObject -inst "SQL01\INST01" -path 'C:\Temp\export'
     .EXAMPLE
-        Export-DatabaseObjects -inst "SQL01\INST01" 4321 -path 'C:\Temp\export'
+        Export-DatabaseObject -inst "SQL01\INST01" 4321 -path 'C:\Temp\export'
     .EXAMPLE
-        Export-DatabaseObjects -inst "SQL01\INST01" -dblist 'db1,db2' -path 'C:\Temp\export'
+        Export-DatabaseObject -inst "SQL01\INST01" -dblist 'db1,db2' -path 'C:\Temp\export'
     .EXAMPLE
-        Export-DatabaseObjects -inst "SQL01\INST01" -includeudf $false -path 'C:\Temp\export'
+        Export-DatabaseObject -inst "SQL01\INST01" -includeudf $false -path 'C:\Temp\export'
     .INPUTS
     .OUTPUTS
-        System.Array
+        Script files
     .NOTES
     .LINK
     #>
@@ -1580,6 +1584,217 @@ function Export-DatabaseObject
     }
 }
 
+
+function Export-SQLServerObject
+{
+    <# 
+    .SYNOPSIS
+        Generates export files of SQL Server objects
+    .DESCRIPTION
+        This function will return generate an export file of SQL Server objects to a .sql file.
+        This includes server roles, logins, linked servers, triggers, database mail and jobs.
+    .PARAMETER  instance
+        This is the instance that needs to be connected
+    .PARAMETER port
+        This is the port of the instance that needs to be used
+    .PARAMETER path
+        Path to export to
+    .PARAMETER includetimestamp
+        Boolean to include a timestamp directory to export to
+    .PARAMETER includeroles
+        Boolean to include or exclude server roles. Can be value $false/$true or 0/1.
+    .PARAMETER includelogins
+        Boolean to include or exclude logins. Can be value $false/$true or 0/1.
+    .PARAMETER includelinkedservers
+        Boolean to include or exclude linked servers. Can be value $false/$true or 0/1.
+    .PARAMETER includetriggers
+        Boolean to include or exclude triggers. Can be value $false/$true or 0/1.
+    .PARAMETER includemail
+        Boolean to include or exclude database mail. Can be value $false/$true or 0/1.
+    .PARAMETER includejobs
+        Boolean to include or exclude jobs. Can be value $false/$true or 0/1.
+    .EXAMPLE
+        Export-SQLServerObject "SQL01" -path 'C:\Temp\export'
+    .EXAMPLE
+        Export-DatabaseObject -inst "SQL01\INST01" -path 'C:\Temp\export'
+    .EXAMPLE
+        Export-DatabaseObject -inst "SQL01\INST01" 4321 -path 'C:\Temp\export'
+    .EXAMPLE
+        Export-DatabaseObject -inst "SQL01\INST01" -includemail $false -path 'C:\Temp\export'
+    .INPUTS
+    .OUTPUTS
+        Script files
+    .NOTES
+    .LINK
+    #>
+    param
+    (
+        [Parameter(Mandatory = $true, Position=1)]
+        [ValidateNotNullOrEmpty()][string]$inst = $null,
+        [Parameter(Mandatory = $false, Position=2)]
+        [string]$port = '1433',
+        [Parameter(Mandatory = $true, Position=3)]
+        [ValidateNotNullOrEmpty()][string]$path = $null,
+        [Parameter(Mandatory = $false, Position=4)]
+        [Alias("timestamp")]
+        [bool]$includetimestamp = $true,
+        [Parameter(Mandatory = $false, Position=5)]
+        [Alias("incr")]
+        [bool]$includeroles = $true,
+        [Parameter(Mandatory = $false, Position=6)]
+        [Alias("incl")]
+        [bool]$includelogins = $true,
+        [Parameter(Mandatory = $false, Position=7)]
+        [Alias("incls")]
+        [bool]$includelinkedservers = $true,
+        [Parameter(Mandatory = $false, Position=8)]
+        [Alias("inct")]
+        [bool]$includetriggers = $true,
+        [Parameter(Mandatory = $false, Position=9)]
+        [Alias("incm")]
+        [bool]$includemail = $true,
+        [Parameter(Mandatory = $false, Position=10)]
+        [Alias("incj")]
+        [bool]$includejobs = $true
+        
+    )
+
+    #Load the assembly
+    [System.Reflection.Assembly]::LoadWithPartialName('Microsoft.SqlServer.SMO') | out-null
+
+    # Create the server object and retrieve the information
+    try{
+        # Check if assembly is loaded
+        Load-Assembly -name 'Microsoft.SqlServer.SMO'
+
+        Write-Host "Starting SQL Server Export: " $inst -ForegroundColor Green
+
+        # Set the destination
+        $destination = "$path\$inst\"
+
+        # Check if timestamp is needed
+        if($includetimestamp)
+        {
+            # Create a timestamp
+            $timestamp = Get-Date -Format yyyyMMddHHmmss
+            # Set the desitnation
+            $destination = "$destination\$timestamp"
+        }
+
+        if((Test-Path $destination) -eq $false)
+        {
+            # Create the directory
+            New-Item -ItemType Directory -Path "$destination" | Out-Null
+        }
+
+        # Create the variable for holding all the server objects
+        [array]$objects = $null
+
+        # Get the roles
+        if($includeroles -eq $true)
+        {
+            Write-Host "Retrieving Server Roles"  -ForegroundColor Green
+            $objects += $server.Roles | where {($_.IsFixedRole -eq $false) -and ($_.Name -ne 'public')}
+        }
+
+        # Get the logins
+        if($includelogins -eq $true)
+        {
+            Write-Host "Retrieving Logins"  -ForegroundColor Green
+            $objects += $server.Logins | where {$_.Name -notmatch 'BUILTIN*|NT SERVICE*|NT AUTHORITY*|##*|sa'}
+        }
+
+
+        # Get the linked servers
+        if($includelinkedservers -eq $true)
+        {
+            Write-Host "Retrieving Linked Servers"  -ForegroundColor Green
+            $objects += $server.LinkedServers
+        }
+
+        # Get the triggers
+        if($includetriggers -eq $true)
+        {
+            Write-Host "Retrieving Triggers"  -ForegroundColor Green
+            $objects += $server.Triggers
+        }
+
+        # Get the mail objects
+        if($includemail -eq $true)
+        {
+            Write-Host "Retrieving Database Mail"  -ForegroundColor Green
+            $objects += $server.Mail
+            $objects += $server.Mail.Accounts
+            $objects += $server.Mail.Profiles
+        }
+
+        # Get the job objects
+        if($includejobs -eq $true)
+        {
+            Write-Host "Retrieving Jobs"  -ForegroundColor Green
+            $objects += $server.JobServer.Operators
+            $objects += $server.JobServer.Jobs
+            $objects += $server.JobServer.Alerts
+        }
+
+        Write-Host $objects.Length "objects found to export." -ForegroundColor Green 
+
+        # Check if there any objects to export
+        if($objects.Length -ge 1)
+        {
+            # Create the scripter object
+            $scripter = New-Object ("Microsoft.SqlServer.Management.Smo.Scripter") $server #"$inst,$port"
+
+            # Set general options
+            $scripter.Options.AppendToFile = $false
+            $scripter.Options.AllowSystemObjects = $false
+            $scripter.Options.ClusteredIndexes = $true
+            $scripter.Options.DriAll = $true
+            $scripter.Options.ScriptDrops = $false
+            $scripter.Options.IncludeHeaders = $true
+            $scripter.Options.ToFileOnly = $true
+            $scripter.Options.Indexes = $true
+            $scripter.Options.WithDependencies = $false
+
+            foreach($item in $objects )
+            {
+                # Get the type of object
+                $typeDir = $item.GetType().Name
+
+                # Check if the directory for the item type exists
+                if((Test-Path "$destination\$typeDir") -eq $false)
+                {
+                    New-Item -ItemType Directory -Name "$typeDir" -path "$destination" | Out-Null
+                }
+
+                #Setup the output file for the item
+                $filename = $item -replace "\[|\]"
+                
+                # Check if the filename contains a "\", if so replace it
+                if($filename -match "\\")
+                {
+                    $filename = $filename -replace "\\", "_"
+                }
+
+                $scripter.Options.FileName = "$destination\$typeDir\$filename.sql"
+
+                # Script out the object 
+                Write-Host "Scripting out $typeDir $item"
+                
+                $scripter.Script($item)
+            }
+        }
+    }
+    catch [Exception]
+    {
+        $errorMessage = $_.Exception.Message
+        $line = $_.InvocationInfo.ScriptLineNumber
+        $script_name = $_.InvocationInfo.ScriptName
+        Write-Host "Error: Occurred on line $line in script $script_name." -ForegroundColor Red
+        Write-Host "Error: $ErrorMessage" -ForegroundColor Red
+    }
+}
+
 ##################################################
 
 function Load-Assembly
@@ -1637,3 +1852,4 @@ Export-ModuleMember -Function Get-SQLServerBackups
 Export-ModuleMember -Function Get-SQLServerPrivileges
 
 Export-ModuleMember -Function Export-DatabaseObject
+Export-ModuleMember -Function Export-SQLServerObject
