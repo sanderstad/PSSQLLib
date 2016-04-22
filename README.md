@@ -6,6 +6,7 @@ Powershell SQL Server Library
 The library has the following features:
 
 * Export database objects
+* Export SQL Server objects
 * Get the host harddisk information
 * Get the host hardware
 * Get the host operating system information
