@@ -3,7 +3,7 @@
 # Adjusted to import the PSSQLLib module
 
 param (
-  [string[]]$url = ("https://github.com/sanderstad/PSSQLLib/raw/master/PSSQLLib.psm1", "https://github.com/sanderstad/PSSQLLib/raw/master/PSSQLLib.psd1")
+  [string[]]$url = ("https://raw.githubusercontent.com/sanderstad/PSSQLLib/master/PSSQLLib.psm1", "https://raw.githubusercontent.com/sanderstad/PSSQLLib/master/PSSQLLib.psd1")
 )
 
 function Find-Proxy() {
